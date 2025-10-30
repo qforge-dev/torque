@@ -50,7 +50,7 @@ await generateDataset(
   ],
   {
     count: 10,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/one-of-example.jsonl",
     seed: 42,
   }
@@ -70,7 +70,7 @@ await generateDataset(
   ],
   {
     count: 5,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/times-example.jsonl",
     seed: 100,
   }
@@ -87,7 +87,7 @@ await generateDataset(
   ],
   {
     count: 10,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/between-example.jsonl",
     seed: 200,
   }
@@ -104,7 +104,7 @@ await generateDataset(
   ],
   {
     count: 10,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/optional-example.jsonl",
     seed: 300,
   }
@@ -137,7 +137,7 @@ await generateDataset(
   ],
   {
     count: 20,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/combined-utilities.jsonl",
     seed: 400,
   }

@@ -44,7 +44,7 @@ await generateDataset(
   ],
   {
     count: 2, // number of examples
-    model: openai("gpt-4o-mini", { apiKey }), // any ai-sdk model
+    model: openai("gpt-5-mini"), // any ai-sdk model
     seed: 42, // replayable RNG
     output: "data/quick-start.jsonl",
   }

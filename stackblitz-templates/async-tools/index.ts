@@ -21,7 +21,7 @@ import {
   times,
   between,
 } from "@qforge/torque";
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { z } from "zod";
 
 // Get API key from environment variable
@@ -38,6 +38,10 @@ if (!apiKey) {
 
 console.log("✅ API key loaded successfully!");
 console.log("🚀 Starting dataset generation...\n");
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // Define a search tool that takes time to execute
 const searchTool = tool({
@@ -128,7 +132,7 @@ await generateDataset(
   ],
   {
     count: 30,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/async-search.jsonl",
     seed: 500,
     concurrency: 3,
@@ -200,7 +204,7 @@ await generateDataset(
   ],
   {
     count: 20,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/async-analysis.jsonl",
     seed: 600,
     concurrency: 2,

@@ -49,7 +49,7 @@ await generateDataset(
   ],
   {
     count: 10,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/static-conversations.jsonl",
     seed: 42,
   }
@@ -75,7 +75,7 @@ await generateDataset(
   ],
   {
     count: 50,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/generated-conversations.jsonl",
     seed: 42,
     generationContext: {

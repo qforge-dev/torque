@@ -45,7 +45,7 @@ await generateDataset(
   ],
   {
     count: 10,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/custom-context-global.jsonl",
     seed: 42,
     generationContext: {
@@ -72,7 +72,7 @@ await generateDataset(
   ],
   {
     count: 20,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/custom-context-roles.jsonl",
     seed: 100,
     generationContext: {
@@ -118,7 +118,7 @@ await generateDataset(
   ],
   {
     count: 15,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/custom-context-casual.jsonl",
     seed: 200,
     generationContext: {

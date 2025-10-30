@@ -52,10 +52,10 @@ function extractMetadata(examplePath: string): ExampleMetadata {
   let description = `Learn how to use Torque with this ${title.toLowerCase()} example.`;
 
   if (commentMatch) {
-    title = commentMatch[1].trim();
+    title = commentMatch[1]!.trim();
 
     // Extract description lines (lines starting with * in the comment block)
-    const descLines = commentMatch[2]
+    const descLines = commentMatch[2]!
       .split("\n")
       .map((line) => line.trim().replace(/^\*\s*/, ""))
       .filter((line) => line && !line.startsWith("This example"));
@@ -154,18 +154,12 @@ console.log("✅ API key loaded successfully!");
 console.log("🚀 Starting dataset generation...\\n");
 `;
 
-  // Replace model references to include apiKey
-  const updatedCode = codeLines
-    .join("\n")
-    .replace(/openai\("([^"]+)"\)/g, 'openai("$1", { apiKey })')
-    .replace(/model: openai\("gpt-5-mini"/g, 'model: openai("gpt-5-mini"'); // Fix typo if exists
-
   return [
     commentLines.join("\n"),
     "",
     importLines.join("\n"),
     byokCheck,
-    updatedCode,
+    codeLines.join("\n"),
   ].join("\n");
 }
 

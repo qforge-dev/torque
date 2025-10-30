@@ -51,7 +51,7 @@ await generateDataset(
   ],
   {
     count: 5,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/extended-greeting.jsonl",
     seed: 42,
   }
@@ -73,7 +73,7 @@ await generateDataset(
   ],
   {
     count: 10,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/varied-greetings.jsonl",
     seed: 100,
   }
@@ -102,7 +102,7 @@ await generateDataset(
   ],
   {
     count: 15,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/composed-patterns.jsonl",
     seed: 200,
   }

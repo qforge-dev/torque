@@ -86,7 +86,7 @@ await generateDataset(
   ],
   {
     count: 25,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/calculator-usage.jsonl",
     seed: 100,
   }
@@ -116,7 +116,7 @@ await generateDataset(
   },
   {
     count: 50,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/multi-tool-usage.jsonl",
     seed: 200,
     concurrency: 3,
@@ -146,7 +146,7 @@ await generateDataset(
   ],
   {
     count: 20,
-    model: openai("gpt-4o-mini", { apiKey }),
+    model: openai("gpt-5-mini"),
     output: "data/multi-call-conversation.jsonl",
     seed: 300,
   }

@@ -33,11 +33,10 @@ take time to execute (async operations). The pattern includes: 1. Tool call with
 - Change the `count` parameter to generate more or fewer examples
 - Modify prompts to generate different types of messages
 - Experiment with different seeds for reproducible generation
-- Adjust the model (try `gpt-4o` for better quality)
+- Adjust the model (try `gpt-5` for better quality)
 
 ## 🐛 Troubleshooting
 
 - **"OPENAI_API_KEY not found"**: Make sure you added the environment variable (see step 1)
 - **Rate limits**: If you hit rate limits, reduce the `count` or wait a moment
 - **Dependencies not installing**: Click "Install dependencies" in the terminal
-
