@@ -57,11 +57,11 @@ Outputs:
 Building training datasets for LLMs is tedious:
 
 - Sometimes you don't have real non-synthetic data
-- Manual conversation writing doesn't scale with conversation length
+- Manual conversation writing doesn't scale with conversation length - imagine writing 10k tokens per row datasets
 - Maintaining consistency across thousands of examples is error-prone
-- Tool calling patterns require intricate message sequences
-- Testing different conversation flows means rewriting everything or adding tons of `if` statements
-- Writing generators that are both **random and deterministic** is surprisingly complex
+- Tool calling patterns require intricate message sequences and are tough
+- Generating different conversation flows means rewriting everything or creating various hard to maintain scripts
+- Designing generators that are random yet reproducible is surprisingly complex
 - Getting AI to understand complex composition scenarios (nested variations, conditional flows) takes significant prompt engineering time
 
 **Torque solves this** with a declarative approach. Just like React transformed UI development from imperative DOM manipulation to composable components, Torque transforms dataset generation from manual JSON editing or writing complicated scripts to declarative conversation schemas. Plus, its optimized structure means you can use smaller, cheaper models while benefiting from cache optimization for lower costs.
