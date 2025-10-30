@@ -175,6 +175,8 @@ const schema = () => [
 ];
 ```
 
+> 💡 See full example: [`examples/basic-conversation.ts`](examples/basic-conversation.ts)
+
 ### Tool Definitions
 
 Define tools with Zod schemas for complete type safety:
@@ -208,6 +210,8 @@ const schema = () => [
   generatedAssistant({ prompt: "Interpret the weather data for the user" }),
 ];
 ```
+
+> 💡 See full example: [`examples/tool-calling.ts`](examples/tool-calling.ts)
 
 ### Two-Phase Execution
 
@@ -306,6 +310,8 @@ await generateDataset(
 );
 ```
 
+> 💡 See full example: [`examples/async-tools.ts`](examples/async-tools.ts)
+
 ### Custom Generation Context
 
 Guide the AI's generation style globally:
@@ -360,7 +366,7 @@ const tools = [weatherTool, calculatorTool, searchTool];
 
 await generateDataset(
   () => {
-    const tool = oneOf(tools)();
+    const tool = oneOf(tools);
 
     return [
       tool.toolFunction(),
@@ -377,6 +383,8 @@ await generateDataset(
   }
 );
 ```
+
+> 💡 See full example: [`examples/multiple-tool-variations.ts`](examples/multiple-tool-variations.ts)
 
 ## 📖 API Reference
 
@@ -610,6 +618,7 @@ Check out the [`examples/`](examples/) directory for complete, runnable examples
 - [`composition-utilities.ts`](examples/composition-utilities.ts) - Using oneOf, times, between, optional
 - [`basic-conversation.ts`](examples/basic-conversation.ts) - Static and AI-generated conversations
 - [`tool-calling.ts`](examples/tool-calling.ts) - Tool definitions and usage patterns
+- [`multiple-tool-variations.ts`](examples/multiple-tool-variations.ts) - Using oneOf with multiple tools
 - [`async-tools.ts`](examples/async-tools.ts) - Async tool workflows with acknowledgments
 - [`custom-generation-context.ts`](examples/custom-generation-context.ts) - Customizing AI generation behavior
 

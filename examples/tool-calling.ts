@@ -77,7 +77,7 @@ await generateDataset(
 await generateDataset(
   () => {
     // Randomly choose which tool to use for each example
-    const selectedTool = oneOf([calculatorTool, weatherTool])();
+    const selectedTool = oneOf([calculatorTool, weatherTool]);
 
     return [
       selectedTool.toolFunction(),

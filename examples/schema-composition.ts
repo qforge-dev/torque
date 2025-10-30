@@ -47,7 +47,7 @@ const formalGreeting = () => [
 
 await generateDataset(
   () => [
-    oneOf([greeting(), formalGreeting()]),
+    oneOf([greeting, formalGreeting]),
     // Continue with shared conversation flow
     generatedUser({ prompt: "Ask a question" }),
     generatedAssistant({ prompt: "Provide helpful answer" }),
@@ -76,7 +76,7 @@ const salesIntro = () => [
 await generateDataset(
   () => [
     // Randomly select conversation type
-    oneOf([greeting(), techSupportIntro(), salesIntro()]),
+    oneOf([greeting, techSupportIntro, salesIntro]),
     // Dynamic follow-up based on AI generation
     generatedUser({ prompt: "Continue the conversation naturally" }),
     generatedAssistant({ prompt: "Respond helpfully in character" }),
@@ -88,4 +88,3 @@ await generateDataset(
     seed: 200,
   }
 );
-
