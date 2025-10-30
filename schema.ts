@@ -295,8 +295,8 @@ export function oneOf<T>(options: T[]): () => T {
   return () => options[Math.floor(random() * options.length)] as T;
 }
 
-export function optional<T>(message: T): () => T | null {
-  return () => (random() < 0.5 ? message : null);
+export function optional<T>(message: T): T | null {
+  return random() < 0.5 ? message : null;
 }
 
 export function times<T>(n: number, message: T): T extends any[] ? T : T[] {

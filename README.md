@@ -189,7 +189,7 @@ const schema = () => [
   ...times(between(1, 5), [generatedUser({ prompt: "Follow-up question" })]),
 
   // Optionally include (50% chance)
-  optional(assistant({ content: "Anything else I can help with?" }))(),
+  optional(assistant({ content: "Anything else I can help with?" })),
 ];
 ```
 
@@ -506,7 +506,7 @@ Generate random number between min and max (inclusive).
 Include message with 50% probability.
 
 ```typescript
-optional(assistant({ content: "Anything else?" }))();
+optional(assistant({ content: "Anything else?" }));
 ```
 
 ## 🎨 CLI Features
