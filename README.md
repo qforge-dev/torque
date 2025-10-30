@@ -40,13 +40,15 @@ npm install @qforge/torque
 ### Basic Example
 
 ```typescript
-import { generateDataset, user, assistant } from "@qforge/torque";
+import { generateDataset, user, generatedAssistant } from "@qforge/torque";
 import { openai } from "@ai-sdk/openai";
 
 await generateDataset(
   () => [
     user({ content: "What's the weather like?" }),
-    assistant({ content: "I don't have access to real-time weather data." }),
+    generatedAssistant({
+      prompt: "Provide a helpful response about weather information access",
+    }),
   ],
   {
     count: 10,
@@ -188,6 +190,27 @@ This enables:
 - Accurate progress tracking
 - Pre-validation of conversation flow
 - Efficient token counting
+
+### Reproducible Generation with Seeds
+
+Control randomness for reproducible datasets:
+
+```typescript
+await generateDataset(schema, {
+  count: 50,
+  model: openai("gpt-4"),
+  output: "data/dataset.jsonl",
+  seed: 12345, // Same seed = same output
+});
+```
+
+**How seeds work:**
+
+- The `seed` parameter ensures deterministic generation across runs
+- Same seed + same schema = identical dataset structure everytime
+- Useful for debugging, testing, and versioning datasets
+- If omitted, a random seed is generated and displayed in the CLI
+- Seeds control both `torque` random selections and AI model sampling (when supported by the provider)
 
 ## 🔧 Advanced Examples
 
