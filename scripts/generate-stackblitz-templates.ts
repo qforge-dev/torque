@@ -137,28 +137,10 @@ function wrapWithBYOK(content: string, metadata: ExampleMetadata): string {
     codeLines.push(line);
   }
 
-  const byokCheck = `
-// Get API key from environment variable
-const apiKey = process.env.OPENAI_API_KEY;
-
-if (!apiKey) {
-  console.error("❌ ERROR: OPENAI_API_KEY not found!");
-  console.log("\\n📝 To add your API key:");
-  console.log("1. Click the 🔒 icon in the bottom left corner");
-  console.log("2. Add: OPENAI_API_KEY=your-key-here");
-  console.log("3. Run this script again\\n");
-  process.exit(1);
-}
-
-console.log("✅ API key loaded successfully!");
-console.log("🚀 Starting dataset generation...\\n");
-`;
-
   return [
     commentLines.join("\n"),
     "",
     importLines.join("\n"),
-    byokCheck,
     codeLines.join("\n"),
   ].join("\n");
 }
