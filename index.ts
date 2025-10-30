@@ -1,3 +1,3 @@
-export * from "./dataset";
-export * from "./schema";
-export * from "./types";
+export * from "./src/dataset";
+export * from "./src/schema";
+export * from "./src/types";
