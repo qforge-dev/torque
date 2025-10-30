@@ -35,11 +35,13 @@ await generateDataset(
   ],
   {
     count: 2, // number of examples
-    model: openai("gpt-5-mini"), // any ai-sdk model
+    model: openai("gpt-4o-mini"), // any ai-sdk model
     seed: 42, // replayable RNG
   }
 );
 ```
+
+> 💡 See full example: [`examples/quick-start.ts`](examples/quick-start.ts)
 
 Outputs:
 
@@ -88,6 +90,42 @@ const schema = () => [
 ];
 ```
 
+**Composing Schemas:**
+
+Since schemas return arrays, you can compose them together to build complex conversations from reusable parts:
+
+```typescript
+// Reusable greeting pattern
+const greeting = () => [
+  system({ content: "You are a helpful assistant." }),
+  user({ content: "Hello!" }),
+  assistant({ content: "Hi! How can I help?" }),
+];
+
+// Compose it with additional conversation
+const extendedSchema = () => [
+  ...greeting(),
+  user({ content: "What's the weather like?" }),
+  assistant({ content: "I'd be happy to check that for you!" }),
+];
+
+// Or create variations
+const formalGreeting = () => [
+  system({ content: "You are a professional assistant." }),
+  user({ content: "Good morning." }),
+  assistant({ content: "Good morning. How may I assist you today?" }),
+];
+
+const schema = () => [
+  oneOf([greeting(), formalGreeting()]),
+  // Continue with shared conversation flow
+  generatedUser({ prompt: "Ask a question" }),
+  generatedAssistant({ prompt: "Provide helpful answer" }),
+];
+```
+
+> 💡 See full example: [`examples/schema-composition.ts`](examples/schema-composition.ts)
+
 ### Composition Utilities
 
 Build dynamic, varied datasets with composition helpers:
@@ -101,7 +139,7 @@ const schema = () => [
     user({ content: "Hello" }),
     user({ content: "Hi there" }),
     user({ content: "Hey" }),
-  ])(),
+  ]),
 
   // Repeat pattern 3 times
   ...times(3, [
@@ -116,6 +154,8 @@ const schema = () => [
   optional(assistant({ content: "Anything else I can help with?" })),
 ];
 ```
+
+> 💡 See full example: [`examples/composition-utilities.ts`](examples/composition-utilities.ts)
 
 ### AI-Generated Messages
 
@@ -305,6 +345,8 @@ await generateDataset(schema, {
   },
 });
 ```
+
+> 💡 See full example: [`examples/custom-generation-context.ts`](examples/custom-generation-context.ts)
 
 ### Multiple Tool Variations
 
@@ -560,13 +602,15 @@ MIT License - see [LICENSE](LICENSE) for details
 
 ## 🌟 Examples
 
-Check out the [`examples/`](examples/) directory for more use cases:
+Check out the [`examples/`](examples/) directory for complete, runnable examples:
 
-- Basic conversations
-- Tool calling patterns
-- Async tool workflows
-- Multi-turn dialogues
-- Custom generation contexts
+- [`quick-start.ts`](examples/quick-start.ts) - Simplest possible example to get started
+- [`schema-composition.ts`](examples/schema-composition.ts) - Composing reusable schema patterns
+- [`composition-utilities.ts`](examples/composition-utilities.ts) - Using oneOf, times, between, optional
+- [`basic-conversation.ts`](examples/basic-conversation.ts) - Static and AI-generated conversations
+- [`tool-calling.ts`](examples/tool-calling.ts) - Tool definitions and usage patterns
+- [`async-tools.ts`](examples/async-tools.ts) - Async tool workflows with acknowledgments
+- [`custom-generation-context.ts`](examples/custom-generation-context.ts) - Customizing AI generation behavior
 
 ## 🔗 Related
 

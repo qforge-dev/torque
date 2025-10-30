@@ -291,12 +291,12 @@ export function tool<T extends z.ZodObject, R extends z.ZodType = any>({
   };
 }
 
-export function oneOf<T>(options: T[]): () => T {
-  return () => options[Math.floor(random() * options.length)] as T;
+export function oneOf<T>(options: T[]): T {
+  return options[Math.floor(random() * options.length)] as T;
 }
 
-export function optional<T>(message: T): T | null {
-  return random() < 0.5 ? message : null;
+export function optional<T>(message: T): T | (() => []) {
+  return random() < 0.5 ? message : () => [];
 }
 
 export function times<T>(n: number, message: T): T extends any[] ? T : T[] {
