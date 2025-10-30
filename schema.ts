@@ -82,8 +82,12 @@ export function assistant({
 
 export function generatedAssistant({
   prompt,
+  toolCalls,
 }: {
   prompt: string;
+  toolCalls?: Array<
+    (context: IMessageSchemaContext) => Awaitable<IToolCallSchema>
+  >;
 }): (context: IMessageSchemaContext) => Awaitable<IAssistantMessageSchema> {
   return async (context) => {
     const { phase } = context;
@@ -92,6 +96,7 @@ export function generatedAssistant({
       return {
         role: "assistant",
         content: prompt,
+        toolCalls,
       };
     }
 
@@ -104,6 +109,7 @@ export function generatedAssistant({
     return {
       role: "assistant",
       content: text,
+      toolCalls,
     };
   };
 }

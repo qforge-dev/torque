@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": @qforge/torque,
+      "name": "@qforge/torque",
       "dependencies": {
         "tiktoken": "^1.0.22",
         "zod-from-json-schema": "0.5.1",

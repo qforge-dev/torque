@@ -21,6 +21,15 @@ export type IMessageSchemaStructure = {
       }
     | {
         role: "assistant";
+        content: string;
+        toolCalls: Array<{
+          toolCallId: string;
+          toolName: string;
+          arguments: Record<string, any>;
+        }>;
+      }
+    | {
+        role: "assistant";
         type: "tool-call";
         toolCallId: string;
         toolName: string;
@@ -96,6 +105,9 @@ export interface IUserMessageSchema {
 export interface IAssistantMessageSchema {
   role: "assistant";
   content: string;
+  toolCalls?: Array<
+    (context: IMessageSchemaContext) => Awaitable<IToolCallSchema>
+  >;
 }
 
 export interface ISystemMessageSchema {

@@ -207,11 +207,35 @@ async function checkMessageSchemaStructure(
   }
 
   if ("content" in message) {
-    structure.messages.push({
-      role: message.role,
-      type: "text",
-      content: message.content,
-    });
+    if (
+      message.role === "assistant" &&
+      message.toolCalls &&
+      message.toolCalls.length > 0
+    ) {
+      // In check phase, resolve tool calls to get their structure
+      const toolCallStructures = await Promise.all(
+        message.toolCalls.map(async (tc) => {
+          const toolCall = await tc(checkContext);
+          return {
+            toolCallId: toolCall.toolCallId,
+            toolName: toolCall.toolName,
+            arguments: toolCall.arguments,
+          };
+        })
+      );
+
+      structure.messages.push({
+        role: "assistant",
+        content: message.content,
+        toolCalls: toolCallStructures,
+      });
+    } else {
+      structure.messages.push({
+        role: message.role,
+        type: "text",
+        content: message.content,
+      });
+    }
     return structure;
   }
 
@@ -252,13 +276,15 @@ async function convertMessageSchemaToDatasetMessage(
   generationContext: GenerationContext | undefined,
   progress?: IGenerationProgress
 ): Promise<IConvertMessageSchemaToDatasetMessageAcc> {
-  const message = await messageFactory({
+  const context = {
     acc,
     ai: aiAgent,
     structure,
-    phase: "generate",
+    phase: "generate" as const,
     generationContext,
-  });
+  };
+
+  const message = await messageFactory(context);
   if (message === null) return acc;
   if (Array.isArray(message)) {
     for (const m of message) {
@@ -305,11 +331,32 @@ async function convertMessageSchemaToDatasetMessage(
         content: [{ type: "text", text: message.content }],
       });
     } else if (message.role === "assistant") {
-      logStep("assistant message");
-      acc.messages.push({
-        role: "assistant",
-        content: [{ type: "text", text: message.content }],
-      });
+      if (message.toolCalls && message.toolCalls.length > 0) {
+        logStep("assistant message with tool calls");
+        // Resolve all tool calls
+        const toolCallParts = await Promise.all(
+          message.toolCalls.map((tc) => tc(context))
+        );
+
+        acc.messages.push({
+          role: "assistant",
+          content: [
+            { type: "text", text: message.content },
+            ...toolCallParts.map((tc) => ({
+              type: "tool-call" as const,
+              toolCallId: tc.toolCallId,
+              toolName: tc.toolName,
+              input: tc.arguments,
+            })),
+          ],
+        });
+      } else {
+        logStep("assistant message");
+        acc.messages.push({
+          role: "assistant",
+          content: [{ type: "text", text: message.content }],
+        });
+      }
     } else if (message.role === "system") {
       logStep("system message");
       acc.messages.push({
