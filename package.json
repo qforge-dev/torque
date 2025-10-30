@@ -1,0 +1,54 @@
+{
+  "name": "torque",
+  "version": "0.1.0",
+  "description": "Like React, but for datasets - A declarative, typesafe DSL for building LLM training datasets",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    }
+  },
+  "keywords": [
+    "llm",
+    "dataset",
+    "training-data",
+    "fine-tuning",
+    "ai",
+    "machine-learning",
+    "declarative",
+    "dsl",
+    "typescript",
+    "zod"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/AsyncTool",
+    "directory": "builder"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/AsyncTool/issues"
+  },
+  "homepage": "https://github.com/yourusername/AsyncTool/tree/main/builder#readme",
+  "peerDependencies": {
+    "ai": "^5.0.0",
+    "zod": "^4.0.0"
+  },
+  "dependencies": {
+    "tiktoken": "^1.0.22",
+    "zod-from-json-schema": "0.5.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "bun-types": "latest",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "private": true
+}
