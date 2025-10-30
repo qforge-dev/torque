@@ -11,7 +11,7 @@ import {
   generatedAssistant,
   times,
   between,
-} from "../index";
+} from "@qforge/torque";
 import { openai } from "@ai-sdk/openai";
 
 // Example 1: Global generation context

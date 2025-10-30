@@ -1,15 +1,8 @@
 /**
- * Tool Calling Example - Torque Interactive Playground
- * 
- * This example demonstrates:
- * - Defining tools with Zod schemas
- * - Generating tool calls and results
- * - Multiple tools in conversations
- * 
- * 🔑 BEFORE RUNNING:
- * 1. Click on the 🔒 icon in the bottom left
- * 2. Add environment variable: OPENAI_API_KEY=your-key-here
- * 3. Click "Run" or press Ctrl+Enter
+ * Tool Calling Example
+ *
+ * This example demonstrates how to define tools with Zod schemas
+ * and generate conversations that include tool calls and results.
  */
 
 import {
@@ -73,7 +66,29 @@ const weatherTool = tool({
   }),
 });
 
-// Generate dataset with multiple tools
+// Example 1: Single tool usage
+await generateDataset(
+  () => [
+    calculatorTool.toolFunction(),
+    generatedUser({ prompt: "Ask for a calculation to be performed" }),
+    generatedAssistant({
+      prompt: "Acknowledge and indicate will use calculator",
+    }),
+    generatedToolCall(calculatorTool, "calc-1"),
+    generatedToolCallResult(calculatorTool, "calc-1"),
+    generatedAssistant({
+      prompt: "Present the calculation result to the user",
+    }),
+  ],
+  {
+    count: 25,
+    model: openai("gpt-4o-mini", { apiKey }),
+    output: "data/calculator-usage.jsonl",
+    seed: 100,
+  }
+);
+
+// Example 2: Multiple tools with random selection
 await generateDataset(
   () => {
     // Randomly choose which tool to use for each example
@@ -96,13 +111,39 @@ await generateDataset(
     ];
   },
   {
-    count: 5,
+    count: 50,
     model: openai("gpt-4o-mini", { apiKey }),
     output: "data/multi-tool-usage.jsonl",
     seed: 200,
+    concurrency: 3,
   }
 );
 
-console.log("\n✨ Dataset generation complete!");
-console.log("📁 Check the 'data/multi-tool-usage.jsonl' file in the file tree");
+// Example 3: Multiple tool calls in one conversation
+await generateDataset(
+  () => [
+    weatherTool.toolFunction(),
+    calculatorTool.toolFunction(),
 
+    // First tool call
+    generatedUser({ prompt: "Ask about weather in a specific city" }),
+    generatedToolCall(weatherTool, "weather-1"),
+    generatedToolCallResult(weatherTool, "weather-1"),
+    generatedAssistant({ prompt: "Present the weather information" }),
+
+    // Second tool call
+    generatedUser({
+      prompt:
+        "Ask for a temperature conversion calculation based on the weather",
+    }),
+    generatedToolCall(calculatorTool, "calc-1"),
+    generatedToolCallResult(calculatorTool, "calc-1"),
+    generatedAssistant({ prompt: "Present the conversion result" }),
+  ],
+  {
+    count: 20,
+    model: openai("gpt-4o-mini", { apiKey }),
+    output: "data/multi-call-conversation.jsonl",
+    seed: 300,
+  }
+);

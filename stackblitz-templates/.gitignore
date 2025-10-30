@@ -1,8 +1,11 @@
-# Generated data files
+# NOTE: Generated template directories ARE committed for GitHub StackBlitz integration
+# Only ignore runtime artifacts within templates
+
+# Generated data files (from running examples)
 */data/
 **/data/
 
-# Node modules
+# Node modules (if someone runs npm install in a template)
 */node_modules/
 **/node_modules/
 
@@ -13,8 +16,15 @@
 # Environment files
 */.env
 **/.env
+*.env.local
+
+# Logs
+*.log
+npm-debug.log*
 
 # OS files
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
 

@@ -1,28 +1,43 @@
-# Torque Basic Conversation - Interactive Playground
+# Torque Basic Conversation Example - Interactive Playground
 
-Learn how to create conversations with both static and AI-generated content.
-
-## 🎯 What This Example Does
-
-- Creates static conversations (same every time)
-- Generates AI-powered conversations (varied each time)
-- Demonstrates custom generation context
-- Saves two datasets to `data/` folder
+with both static and AI-generated content.
 
 ## 🔑 Setup Instructions
 
-1. Click the **🔒 lock icon** in the bottom left
-2. Add: `OPENAI_API_KEY` = your OpenAI API key
-3. Click **"▶️ Run"** or press `Ctrl+Enter`
+**You need an OpenAI API key to run this example.**
+
+1. Click the **🔒 lock icon** in the bottom left corner of StackBlitz
+2. Click "Add environment variable"
+3. Name: `OPENAI_API_KEY`
+4. Value: Your OpenAI API key (get one from [platform.openai.com](https://platform.openai.com))
+5. Click "Add"
+
+## ▶️ Run the Example
+
+- Click the **"▶️ Run"** button at the top, or
+- Press `Ctrl+Enter` (Windows/Linux) or `Cmd+Enter` (Mac)
+
+## 📁 View Results
+
+- Check the terminal output to see progress
+- Open generated files in the `data/` folder to see the dataset
 
 ## 📚 Learn More
 
-- [Full Documentation](https://github.com/qforge-dev/torque)
+- **Documentation**: [github.com/qforge-dev/torque](https://github.com/qforge-dev/torque)
+- **More Examples**: Check out other interactive examples
+- **Install Locally**: `npm install @qforge/torque` or `bun add @qforge/torque`
 
 ## 💡 Try Modifying
 
-- Change the static message content
-- Modify generation prompts for different conversation types
-- Adjust the `generationContext` to control AI style
-- Increase `count` to generate more examples
+- Change the `count` parameter to generate more or fewer examples
+- Modify prompts to generate different types of messages
+- Experiment with different seeds for reproducible generation
+- Adjust the model (try `gpt-4o` for better quality)
+
+## 🐛 Troubleshooting
+
+- **"OPENAI_API_KEY not found"**: Make sure you added the environment variable (see step 1)
+- **Rate limits**: If you hit rate limits, reduce the `count` or wait a moment
+- **Dependencies not installing**: Click "Install dependencies" in the terminal
 

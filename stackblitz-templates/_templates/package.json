@@ -1,8 +1,8 @@
 {
-  "name": "torque-basic-conversation",
+  "name": "torque-{{EXAMPLE_NAME}}",
   "version": "1.0.0",
   "type": "module",
-  "description": "Basic Conversation Example - Torque Interactive Playground",
+  "description": "{{EXAMPLE_TITLE}} - Torque Interactive Playground",
   "scripts": {
     "start": "node --loader ts-node/esm index.ts",
     "dev": "tsx index.ts"

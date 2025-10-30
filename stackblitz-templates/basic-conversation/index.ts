@@ -1,15 +1,8 @@
 /**
- * Basic Conversation Example - Torque Interactive Playground
- * 
- * This example demonstrates:
- * - Static conversations (hardcoded messages)
- * - AI-generated conversations
- * - Custom generation context
- * 
- * 🔑 BEFORE RUNNING:
- * 1. Click on the 🔒 icon in the bottom left
- * 2. Add environment variable: OPENAI_API_KEY=your-key-here
- * 3. Click "Run" or press Ctrl+Enter
+ * Basic Conversation Example
+ *
+ * This example shows how to create simple back-and-forth conversations
+ * with both static and AI-generated content.
  */
 
 import {
@@ -37,7 +30,6 @@ console.log("✅ API key loaded successfully!");
 console.log("🚀 Starting dataset generation...\n");
 
 // Example 1: Static Conversations
-console.log("📝 Generating static conversations...");
 await generateDataset(
   () => [
     user({ content: "Hello! I need help with TypeScript." }),
@@ -52,7 +44,7 @@ await generateDataset(
     }),
   ],
   {
-    count: 3,
+    count: 10,
     model: openai("gpt-4o-mini", { apiKey }),
     output: "data/static-conversations.jsonl",
     seed: 42,
@@ -60,7 +52,6 @@ await generateDataset(
 );
 
 // Example 2: AI-Generated Conversations
-console.log("\n🤖 Generating AI-powered conversations...");
 await generateDataset(
   () => [
     generatedUser({
@@ -79,7 +70,7 @@ await generateDataset(
     }),
   ],
   {
-    count: 5,
+    count: 50,
     model: openai("gpt-4o-mini", { apiKey }),
     output: "data/generated-conversations.jsonl",
     seed: 42,
@@ -96,7 +87,3 @@ await generateDataset(
     },
   }
 );
-
-console.log("\n✨ Dataset generation complete!");
-console.log("📁 Check the 'data/' folder for generated files");
-

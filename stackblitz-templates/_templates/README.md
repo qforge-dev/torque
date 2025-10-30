@@ -1,6 +1,6 @@
-# Torque Multiple Tool Variations Example - Interactive Playground
+# Torque {{EXAMPLE_TITLE}} - Interactive Playground
 
-using oneOf to randomly select which tool to use for each example.
+{{EXAMPLE_DESCRIPTION}}
 
 ## 🔑 Setup Instructions
 

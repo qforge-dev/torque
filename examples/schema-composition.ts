@@ -13,7 +13,7 @@ import {
   generatedUser,
   generatedAssistant,
   oneOf,
-} from "../index";
+} from "@qforge/torque";
 import { openai } from "@ai-sdk/openai";
 
 // Reusable greeting pattern

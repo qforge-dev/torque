@@ -13,7 +13,7 @@ import {
   generatedToolCallResult,
   tool,
   oneOf,
-} from "../index";
+} from "@qforge/torque";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 

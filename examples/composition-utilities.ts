@@ -15,7 +15,7 @@ import {
   times,
   between,
   optional,
-} from "../index";
+} from "@qforge/torque";
 import { openai } from "@ai-sdk/openai";
 
 // Example 1: oneOf - Random selection

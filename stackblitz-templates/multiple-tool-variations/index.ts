@@ -1,15 +1,8 @@
 /**
- * Multiple Tool Variations Example - Torque Interactive Playground
- * 
- * This example demonstrates:
- * - Defining multiple tools
- * - Using oneOf to randomly select tools
- * - Generating diverse tool usage patterns
- * 
- * 🔑 BEFORE RUNNING:
- * 1. Click on the 🔒 icon in the bottom left
- * 2. Add environment variable: OPENAI_API_KEY=your-key-here
- * 3. Click "Run" or press Ctrl+Enter
+ * Multiple Tool Variations Example
+ *
+ * This example demonstrates how to generate datasets with different tools
+ * using oneOf to randomly select which tool to use for each example.
  */
 
 import {
@@ -93,14 +86,9 @@ await generateDataset(
     ];
   },
   {
-    count: 10,
+    count: 30, // 10 examples per tool on average
     model: openai("gpt-4o-mini", { apiKey }),
     output: "data/multi-tool.jsonl",
     seed: 12345,
   }
 );
-
-console.log("\n✨ Dataset generation complete!");
-console.log("📁 Check the 'data/multi-tool.jsonl' file");
-console.log("\n💡 The dataset includes examples for all three tools!");
-

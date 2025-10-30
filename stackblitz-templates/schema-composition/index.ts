@@ -1,16 +1,8 @@
 /**
- * Schema Composition Example - Torque Interactive Playground
- * 
- * This example demonstrates:
- * - Building reusable schema patterns
- * - Composing schemas with the spread operator
- * - Creating variations with oneOf
- * - Building component libraries
- * 
- * 🔑 BEFORE RUNNING:
- * 1. Click on the 🔒 icon in the bottom left
- * 2. Add environment variable: OPENAI_API_KEY=your-key-here
- * 3. Click "Run" or press Ctrl+Enter
+ * Schema Composition Example
+ *
+ * This example shows how to compose reusable schema patterns
+ * to build complex conversations from smaller building blocks.
  */
 
 import {
@@ -46,45 +38,68 @@ const greeting = () => [
   assistant({ content: "Hi! How can I help?" }),
 ];
 
-// Formal greeting variation
+// Example 1: Extend a base schema
+await generateDataset(
+  () => [
+    ...greeting(),
+    user({ content: "What's the weather like?" }),
+    assistant({ content: "I'd be happy to check that for you!" }),
+  ],
+  {
+    count: 5,
+    model: openai("gpt-4o-mini", { apiKey }),
+    output: "data/extended-greeting.jsonl",
+    seed: 42,
+  }
+);
+
+// Example 2: Create variations with oneOf
 const formalGreeting = () => [
   system({ content: "You are a professional assistant." }),
   user({ content: "Good morning." }),
   assistant({ content: "Good morning. How may I assist you today?" }),
 ];
 
-// Tech support intro
+await generateDataset(
+  () => [
+    oneOf([greeting, formalGreeting]),
+    // Continue with shared conversation flow
+    generatedUser({ prompt: "Ask a question" }),
+    generatedAssistant({ prompt: "Provide helpful answer" }),
+  ],
+  {
+    count: 10,
+    model: openai("gpt-4o-mini", { apiKey }),
+    output: "data/varied-greetings.jsonl",
+    seed: 100,
+  }
+);
+
+// Example 3: Build a library of reusable patterns
 const techSupportIntro = () => [
   system({ content: "You are a technical support assistant." }),
   user({ content: "I'm having a problem with my device." }),
   assistant({ content: "I'm here to help. Can you describe the issue?" }),
 ];
 
-// Sales intro
 const salesIntro = () => [
   system({ content: "You are a friendly sales assistant." }),
   user({ content: "I'm interested in your product." }),
   assistant({ content: "Great! I'd love to tell you more about it." }),
 ];
 
-// Generate dataset with composed patterns
 await generateDataset(
   () => [
     // Randomly select conversation type
-    oneOf([greeting, formalGreeting, techSupportIntro, salesIntro]),
+    oneOf([greeting, techSupportIntro, salesIntro]),
     // Dynamic follow-up based on AI generation
     generatedUser({ prompt: "Continue the conversation naturally" }),
     generatedAssistant({ prompt: "Respond helpfully in character" }),
   ],
   {
-    count: 10,
+    count: 15,
     model: openai("gpt-4o-mini", { apiKey }),
     output: "data/composed-patterns.jsonl",
     seed: 200,
   }
 );
-
-console.log("\n✨ Dataset generation complete!");
-console.log("📁 Check the 'data/composed-patterns.jsonl' file");
-console.log("\n💡 Each conversation starts with a different intro pattern!");
-

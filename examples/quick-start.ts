@@ -11,7 +11,7 @@ import {
   assistant,
   generatedAssistant,
   oneOf,
-} from "../index";
+} from "@qforge/torque";
 import { openai } from "@ai-sdk/openai";
 
 await generateDataset(

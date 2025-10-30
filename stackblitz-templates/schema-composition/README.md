@@ -1,29 +1,43 @@
-# Torque Schema Composition - Interactive Playground
+# Torque Schema Composition Example - Interactive Playground
 
-Learn how to build reusable conversation patterns and compose them together.
-
-## 🎯 What This Example Does
-
-- Defines 4 reusable intro patterns (greeting, formal, tech support, sales)
-- Uses `oneOf` to randomly select which intro to use
-- Continues with AI-generated conversation
-- Demonstrates "React-like" composability
+to build complex conversations from smaller building blocks.
 
 ## 🔑 Setup Instructions
 
-1. Click the **🔒 lock icon** in the bottom left
-2. Add: `OPENAI_API_KEY` = your OpenAI API key
-3. Click **"▶️ Run"** or press `Ctrl+Enter`
+**You need an OpenAI API key to run this example.**
+
+1. Click the **🔒 lock icon** in the bottom left corner of StackBlitz
+2. Click "Add environment variable"
+3. Name: `OPENAI_API_KEY`
+4. Value: Your OpenAI API key (get one from [platform.openai.com](https://platform.openai.com))
+5. Click "Add"
+
+## ▶️ Run the Example
+
+- Click the **"▶️ Run"** button at the top, or
+- Press `Ctrl+Enter` (Windows/Linux) or `Cmd+Enter` (Mac)
+
+## 📁 View Results
+
+- Check the terminal output to see progress
+- Open generated files in the `data/` folder to see the dataset
 
 ## 📚 Learn More
 
-- [Full Documentation](https://github.com/qforge-dev/torque)
-- [Schema Composition Guide](https://github.com/qforge-dev/torque#composing-schemas)
+- **Documentation**: [github.com/qforge-dev/torque](https://github.com/qforge-dev/torque)
+- **More Examples**: Check out other interactive examples
+- **Install Locally**: `npm install @qforge/torque` or `bun add @qforge/torque`
 
 ## 💡 Try Modifying
 
-- Create your own intro pattern
-- Chain multiple patterns together with `...pattern1(), ...pattern2()`
-- Build nested compositions
-- Create a library of domain-specific patterns
+- Change the `count` parameter to generate more or fewer examples
+- Modify prompts to generate different types of messages
+- Experiment with different seeds for reproducible generation
+- Adjust the model (try `gpt-4o` for better quality)
+
+## 🐛 Troubleshooting
+
+- **"OPENAI_API_KEY not found"**: Make sure you added the environment variable (see step 1)
+- **Rate limits**: If you hit rate limits, reduce the `count` or wait a moment
+- **Dependencies not installing**: Click "Install dependencies" in the terminal
 

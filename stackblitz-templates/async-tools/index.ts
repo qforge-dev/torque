@@ -1,19 +1,14 @@
 /**
- * Async Tool Pattern Example - Torque Interactive Playground
- * 
- * This example demonstrates:
- * - Modeling long-running tool operations
- * - Immediate acknowledgments with <tool_ack />
- * - Filler conversation while waiting
- * - Final result delivery
- * 
- * This pattern is useful for training LLMs to handle async operations
+ * Async Tool Pattern Example
+ *
+ * This example demonstrates how to model conversations where tools
+ * take time to execute (async operations). The pattern includes:
+ * 1. Tool call with immediate acknowledgment
+ * 2. Filler conversation while waiting
+ * 3. Final result delivery
+ *
+ * This is useful for training LLMs to handle long-running operations
  * like web searches, API calls, or background tasks.
- * 
- * 🔑 BEFORE RUNNING:
- * 1. Click on the 🔒 icon in the bottom left
- * 2. Add environment variable: OPENAI_API_KEY=your-key-here
- * 3. Click "Run" or press Ctrl+Enter
  */
 
 import {
@@ -61,6 +56,24 @@ const searchTool = tool({
           url: z.string(),
         })
       ),
+    }),
+    z.string(),
+  ]),
+});
+
+// Define a data analysis tool
+const analysisTool = tool({
+  name: "analyze_data",
+  description: "Analyze a dataset and generate insights",
+  parameters: z.object({
+    dataset_url: z.string().describe("URL to the dataset"),
+    analysis_type: z.enum(["descriptive", "predictive", "prescriptive"]),
+  }),
+  output: z.union([
+    z.object({
+      summary: z.string(),
+      key_insights: z.array(z.string()),
+      visualizations: z.array(z.string()).optional(),
     }),
     z.string(),
   ]),
@@ -114,11 +127,11 @@ await generateDataset(
     }),
   ],
   {
-    count: 5,
+    count: 30,
     model: openai("gpt-4o-mini", { apiKey }),
     output: "data/async-search.jsonl",
     seed: 500,
-    concurrency: 2,
+    concurrency: 3,
     generationContext: {
       global: {
         messages: [
@@ -130,14 +143,66 @@ Avoid repetitive phrases like "Sure" or "Thanks" at the start of messages.`,
           },
         ],
       },
+      user: {
+        messages: [
+          {
+            role: "system",
+            content:
+              "User messages should be varied - sometimes patient, sometimes checking status, sometimes changing topic.",
+          },
+        ],
+      },
     },
   }
 );
 
-console.log("\n✨ Dataset generation complete!");
-console.log("📁 Check the 'data/async-search.jsonl' file");
-console.log("\n💡 Notice the async pattern:");
-console.log("   1. Tool call with <tool_ack /> response");
-console.log("   2. Natural filler conversation");
-console.log("   3. Same tool call with real results");
+// Example with data analysis (longer async operation)
+await generateDataset(
+  () => [
+    analysisTool.toolFunction(),
 
+    generatedUser({
+      prompt: "Request analysis of a dataset",
+    }),
+
+    generatedAssistant({
+      prompt: "Acknowledge and start the analysis",
+    }),
+
+    generatedToolCall(analysisTool, "analysis-1"),
+    generatedToolCallResult(analysisTool, "analysis-1", "<tool_ack />"),
+
+    generatedAssistant({
+      prompt: "Explain the analysis will take some time due to dataset size",
+    }),
+
+    // More filler conversation (2-4 exchanges)
+    ...times(between(2, 4), [
+      generatedUser({
+        prompt:
+          "Either ask about the analysis status or engage in unrelated conversation",
+      }),
+      generatedAssistant({
+        prompt:
+          "Respond appropriately - if asked about status, provide reassurance; otherwise engage naturally",
+      }),
+    ]),
+
+    // Final result
+    generatedToolCall(analysisTool, "analysis-1-FINAL", {
+      reuseArgsFrom: "analysis-1",
+    }),
+    generatedToolCallResult(analysisTool, "analysis-1-FINAL"),
+
+    generatedAssistant({
+      prompt: "Present the analysis results with key insights highlighted",
+    }),
+  ],
+  {
+    count: 20,
+    model: openai("gpt-4o-mini", { apiKey }),
+    output: "data/async-analysis.jsonl",
+    seed: 600,
+    concurrency: 2,
+  }
+);

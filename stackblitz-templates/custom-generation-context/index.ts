@@ -1,17 +1,8 @@
 /**
- * Custom Generation Context Example - Torque Interactive Playground
- * 
- * This example demonstrates:
- * - Global generation context (applies to all messages)
- * - Role-specific context (user vs assistant)
- * - Style customization
- * 
- * Use generation context to control AI behavior and style.
- * 
- * 🔑 BEFORE RUNNING:
- * 1. Click on the 🔒 icon in the bottom left
- * 2. Add environment variable: OPENAI_API_KEY=your-key-here
- * 3. Click "Run" or press Ctrl+Enter
+ * Custom Generation Context Example
+ *
+ * This example shows how to customize the AI generation behavior
+ * with global, user, and assistant-specific instructions.
  */
 
 import {
@@ -38,34 +29,57 @@ if (!apiKey) {
 console.log("✅ API key loaded successfully!");
 console.log("🚀 Starting dataset generation...\n");
 
-// Example with custom generation context
+// Example 1: Global generation context
+await generateDataset(
+  () => [
+    generatedUser({ prompt: "Greeting" }),
+    generatedAssistant({ prompt: "Respond to greeting" }),
+    ...times(between(2, 4), [
+      generatedUser({ prompt: "Ask a question" }),
+      generatedAssistant({ prompt: "Answer the question" }),
+    ]),
+  ],
+  {
+    count: 10,
+    model: openai("gpt-4o-mini", { apiKey }),
+    output: "data/custom-context-global.jsonl",
+    seed: 42,
+    generationContext: {
+      global: {
+        messages: [
+          {
+            role: "system",
+            content:
+              'Keep messages concise and natural. Avoid starting with "Sure" or "Thanks".',
+          },
+        ],
+      },
+    },
+  }
+);
+
+// Example 2: Role-specific generation context
 await generateDataset(
   () => [
     generatedUser({ prompt: "Technical question about programming" }),
     generatedAssistant({
       prompt: "Provide detailed answer with code examples",
     }),
-    ...times(between(1, 2), [
-      generatedUser({ prompt: "Follow-up question" }),
-      generatedAssistant({ prompt: "Provide additional details" }),
-    ]),
   ],
   {
-    count: 5,
+    count: 20,
     model: openai("gpt-4o-mini", { apiKey }),
-    output: "data/custom-context.jsonl",
+    output: "data/custom-context-roles.jsonl",
     seed: 100,
     generationContext: {
-      // Applies to all generated messages
       global: {
         messages: [
           {
             role: "system",
-            content: 'Keep messages concise. Avoid starting with "Sure" or "Thanks".',
+            content: "Keep all messages professional and informative.",
           },
         ],
       },
-      // User-specific instructions
       user: {
         messages: [
           {
@@ -75,7 +89,6 @@ await generateDataset(
           },
         ],
       },
-      // Assistant-specific instructions
       assistant: {
         messages: [
           {
@@ -89,10 +102,49 @@ await generateDataset(
   }
 );
 
-console.log("\n✨ Dataset generation complete!");
-console.log("📁 Check the 'data/custom-context.jsonl' file");
-console.log("\n💡 Notice how generation context controls:");
-console.log("   - Message style and tone");
-console.log("   - Length and verbosity");
-console.log("   - User vs assistant behavior");
-
+// Example 3: Style-specific customization
+await generateDataset(
+  () => [
+    generatedUser({ prompt: "Casual conversation starter" }),
+    generatedAssistant({ prompt: "Respond in a friendly, casual way" }),
+    ...times(3, [
+      generatedUser({ prompt: "Continue casual conversation" }),
+      generatedAssistant({ prompt: "Keep the tone light and friendly" }),
+    ]),
+  ],
+  {
+    count: 15,
+    model: openai("gpt-4o-mini", { apiKey }),
+    output: "data/custom-context-casual.jsonl",
+    seed: 200,
+    generationContext: {
+      global: {
+        messages: [
+          {
+            role: "system",
+            content:
+              "Keep the tone casual and friendly. Use contractions and informal language. Avoid corporate speak.",
+          },
+        ],
+      },
+      user: {
+        messages: [
+          {
+            role: "system",
+            content:
+              "User messages should sound natural and conversational, like texting a friend.",
+          },
+        ],
+      },
+      assistant: {
+        messages: [
+          {
+            role: "system",
+            content:
+              "Be warm and personable. Use emojis occasionally. Keep responses brief.",
+          },
+        ],
+      },
+    },
+  }
+);

@@ -1,15 +1,8 @@
 /**
- * Quick Start Example - Torque Interactive Playground
- * 
- * This example demonstrates:
- * - AI-generated user messages
- * - Static and generated assistant responses
- * - Basic dataset generation
- * 
- * 🔑 BEFORE RUNNING:
- * 1. Click on the 🔒 icon in the bottom left
- * 2. Add environment variable: OPENAI_API_KEY=your-key-here
- * 3. Click "Run" or press Ctrl+Enter
+ * Quick Start Example
+ *
+ * This is the simplest example to get started with Torque.
+ * Demonstrates AI-generated user messages with static/generated assistant responses.
  */
 
 import {
@@ -36,7 +29,6 @@ if (!apiKey) {
 console.log("✅ API key loaded successfully!");
 console.log("🚀 Starting dataset generation...\n");
 
-// Generate the dataset
 await generateDataset(
   () => [
     generatedUser({ prompt: "Friendly greeting or introduction" }), // AI generated
@@ -48,12 +40,8 @@ await generateDataset(
   ],
   {
     count: 2, // number of examples
-    model: openai("gpt-4o-mini", { apiKey }), // use your API key
+    model: openai("gpt-4o-mini", { apiKey }), // any ai-sdk model
     seed: 42, // replayable RNG
     output: "data/quick-start.jsonl",
   }
 );
-
-console.log("\n✨ Dataset generation complete!");
-console.log("📁 Check the 'data/quick-start.jsonl' file in the file tree");
-

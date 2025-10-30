@@ -1,16 +1,8 @@
 /**
- * Composition Utilities Example - Torque Interactive Playground
- * 
- * This example demonstrates:
- * - oneOf - Random selection from options
- * - times - Repeat patterns
- * - between - Variable repetition
- * - optional - 50% chance inclusion
- * 
- * 🔑 BEFORE RUNNING:
- * 1. Click on the 🔒 icon in the bottom left
- * 2. Add environment variable: OPENAI_API_KEY=your-key-here
- * 3. Click "Run" or press Ctrl+Enter
+ * Composition Utilities Example
+ *
+ * This example demonstrates all the composition helpers:
+ * oneOf, times, between, and optional
  */
 
 import {
@@ -41,7 +33,80 @@ if (!apiKey) {
 console.log("✅ API key loaded successfully!");
 console.log("🚀 Starting dataset generation...\n");
 
-// Example: Combining all utilities
+// Example 1: oneOf - Random selection
+await generateDataset(
+  () => [
+    // Choose randomly from options
+    oneOf([
+      user({ content: "Hello" }),
+      user({ content: "Hi there" }),
+      user({ content: "Hey" }),
+    ]),
+    assistant({ content: "Hi! How can I help you today?" }),
+  ],
+  {
+    count: 10,
+    model: openai("gpt-4o-mini", { apiKey }),
+    output: "data/one-of-example.jsonl",
+    seed: 42,
+  }
+);
+
+// Example 2: times - Repeat pattern
+await generateDataset(
+  () => [
+    user({ content: "I have several questions." }),
+    assistant({ content: "Sure, go ahead!" }),
+
+    // Repeat pattern 3 times
+    ...times(3, [
+      generatedUser({ prompt: "Ask a question" }),
+      generatedAssistant({ prompt: "Answer the question" }),
+    ]),
+  ],
+  {
+    count: 5,
+    model: openai("gpt-4o-mini", { apiKey }),
+    output: "data/times-example.jsonl",
+    seed: 100,
+  }
+);
+
+// Example 3: between - Variable repetition
+await generateDataset(
+  () => [
+    user({ content: "Let's have a conversation." }),
+    assistant({ content: "I'd be happy to chat!" }),
+
+    // Repeat random number of times (1-5)
+    ...times(between(1, 5), [generatedUser({ prompt: "Follow-up question" })]),
+  ],
+  {
+    count: 10,
+    model: openai("gpt-4o-mini", { apiKey }),
+    output: "data/between-example.jsonl",
+    seed: 200,
+  }
+);
+
+// Example 4: optional - 50% chance
+await generateDataset(
+  () => [
+    user({ content: "Thanks for your help!" }),
+    assistant({ content: "You're welcome!" }),
+
+    // Optionally include (50% chance)
+    optional(assistant({ content: "Anything else I can help with?" })),
+  ],
+  {
+    count: 10,
+    model: openai("gpt-4o-mini", { apiKey }),
+    output: "data/optional-example.jsonl",
+    seed: 300,
+  }
+);
+
+// Example 5: Combining all utilities
 await generateDataset(
   () => [
     // Random greeting
@@ -52,7 +117,7 @@ await generateDataset(
     ]),
     assistant({ content: "Hello! How can I assist you?" }),
 
-    // Variable number of Q&A exchanges (2-4 times)
+    // Variable number of Q&A exchanges
     ...times(between(2, 4), [
       generatedUser({ prompt: "Ask a question about programming" }),
       generatedAssistant({
@@ -60,24 +125,16 @@ await generateDataset(
       }),
     ]),
 
-    // Optional closing (50% chance)
+    // Optional closing
     optional(user({ content: "Thank you!" })),
     optional(
       assistant({ content: "You're welcome! Feel free to ask anytime." })
     ),
   ],
   {
-    count: 5,
+    count: 20,
     model: openai("gpt-4o-mini", { apiKey }),
     output: "data/combined-utilities.jsonl",
     seed: 400,
   }
 );
-
-console.log("\n✨ Dataset generation complete!");
-console.log("📁 Check the 'data/combined-utilities.jsonl' file");
-console.log("\n💡 Notice how each conversation varies:");
-console.log("   - Different greetings (oneOf)");
-console.log("   - Different number of Q&As (between 2-4)");
-console.log("   - Some have closing messages, some don't (optional)");
-

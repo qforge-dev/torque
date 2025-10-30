@@ -1,32 +1,43 @@
-# Torque Async Tools - Interactive Playground
+# Torque Async Tool Pattern Example - Interactive Playground
 
-Learn how to model conversations with long-running tool operations.
-
-## 🎯 What This Example Does
-
-Models realistic async tool usage:
-1. **Tool call** - Assistant calls the tool
-2. **Acknowledgment** - Immediate `<tool_ack />` response
-3. **Filler conversation** - User and assistant chat while waiting
-4. **Final result** - Tool completes and returns real data
-
-This pattern trains LLMs to handle async operations naturally.
+take time to execute (async operations). The pattern includes: 1. Tool call with immediate acknowledgment 2. Filler conversation while waiting 3. Final result delivery This is useful for training LLMs to handle long-running operations like web searches, API calls, or background tasks.
 
 ## 🔑 Setup Instructions
 
-1. Click the **🔒 lock icon** in the bottom left
-2. Add: `OPENAI_API_KEY` = your OpenAI API key
-3. Click **"▶️ Run"** or press `Ctrl+Enter`
+**You need an OpenAI API key to run this example.**
+
+1. Click the **🔒 lock icon** in the bottom left corner of StackBlitz
+2. Click "Add environment variable"
+3. Name: `OPENAI_API_KEY`
+4. Value: Your OpenAI API key (get one from [platform.openai.com](https://platform.openai.com))
+5. Click "Add"
+
+## ▶️ Run the Example
+
+- Click the **"▶️ Run"** button at the top, or
+- Press `Ctrl+Enter` (Windows/Linux) or `Cmd+Enter` (Mac)
+
+## 📁 View Results
+
+- Check the terminal output to see progress
+- Open generated files in the `data/` folder to see the dataset
 
 ## 📚 Learn More
 
-- [Full Documentation](https://github.com/qforge-dev/torque)
-- [Async Tools Example](https://github.com/qforge-dev/torque#async-tool-pattern)
+- **Documentation**: [github.com/qforge-dev/torque](https://github.com/qforge-dev/torque)
+- **More Examples**: Check out other interactive examples
+- **Install Locally**: `npm install @qforge/torque` or `bun add @qforge/torque`
 
 ## 💡 Try Modifying
 
-- Change the filler conversation range (currently 1-3)
-- Add more tool types (database queries, API calls, etc.)
-- Create multi-stage async flows
-- Add progress updates during filler conversation
+- Change the `count` parameter to generate more or fewer examples
+- Modify prompts to generate different types of messages
+- Experiment with different seeds for reproducible generation
+- Adjust the model (try `gpt-4o` for better quality)
+
+## 🐛 Troubleshooting
+
+- **"OPENAI_API_KEY not found"**: Make sure you added the environment variable (see step 1)
+- **Rate limits**: If you hit rate limits, reduce the `count` or wait a moment
+- **Dependencies not installing**: Click "Install dependencies" in the terminal
 

@@ -1,31 +1,43 @@
-# Torque Composition Utilities - Interactive Playground
+# Torque Composition Utilities Example - Interactive Playground
 
-Learn how to use composition helpers to create varied, dynamic conversations.
-
-## 🎯 What This Example Does
-
-- **oneOf**: Randomly selects one option from a list
-- **times**: Repeats a pattern N times
-- **between**: Generates a random number for variable repetition
-- **optional**: Includes content with 50% probability
-
-All utilities are combined to create diverse conversation structures.
+oneOf, times, between, and optional
 
 ## 🔑 Setup Instructions
 
-1. Click the **🔒 lock icon** in the bottom left
-2. Add: `OPENAI_API_KEY` = your OpenAI API key
-3. Click **"▶️ Run"** or press `Ctrl+Enter`
+**You need an OpenAI API key to run this example.**
+
+1. Click the **🔒 lock icon** in the bottom left corner of StackBlitz
+2. Click "Add environment variable"
+3. Name: `OPENAI_API_KEY`
+4. Value: Your OpenAI API key (get one from [platform.openai.com](https://platform.openai.com))
+5. Click "Add"
+
+## ▶️ Run the Example
+
+- Click the **"▶️ Run"** button at the top, or
+- Press `Ctrl+Enter` (Windows/Linux) or `Cmd+Enter` (Mac)
+
+## 📁 View Results
+
+- Check the terminal output to see progress
+- Open generated files in the `data/` folder to see the dataset
 
 ## 📚 Learn More
 
-- [Full Documentation](https://github.com/qforge-dev/torque)
-- [Composition Utilities Guide](https://github.com/qforge-dev/torque#composition-utilities)
+- **Documentation**: [github.com/qforge-dev/torque](https://github.com/qforge-dev/torque)
+- **More Examples**: Check out other interactive examples
+- **Install Locally**: `npm install @qforge/torque` or `bun add @qforge/torque`
 
 ## 💡 Try Modifying
 
-- Add more options to `oneOf` array
-- Change the range in `between(2, 4)` to `between(1, 10)`
-- Nest utilities (e.g., `times` inside `times`)
-- Combine with tool calling for complex flows
+- Change the `count` parameter to generate more or fewer examples
+- Modify prompts to generate different types of messages
+- Experiment with different seeds for reproducible generation
+- Adjust the model (try `gpt-4o` for better quality)
+
+## 🐛 Troubleshooting
+
+- **"OPENAI_API_KEY not found"**: Make sure you added the environment variable (see step 1)
+- **Rate limits**: If you hit rate limits, reduce the `count` or wait a moment
+- **Dependencies not installing**: Click "Install dependencies" in the terminal
 

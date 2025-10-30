@@ -60,6 +60,8 @@
     "build": "bun run clean && bun run compile",
     "clean": "rm -rf dist",
     "compile": "tsc -p tsconfig.build.json",
+    "generate:templates": "bun run scripts/generate-stackblitz-templates.ts",
+    "prebuild": "bun run generate:templates",
     "prepublishOnly": "bun run build",
     "prepack": "bun run build"
   }
