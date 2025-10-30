@@ -4,6 +4,7 @@
 
 **Torque** is a declarative, typesafe DSL for building complex LLM training datasets. Compose conversations like components, generate realistic variations with AI, and scale to thousands of examples with concurrent execution.
 
+[![npm version](https://img.shields.io/npm/v/@qforge/torque.svg)](https://www.npmjs.com/package/@qforge/torque)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
