@@ -15,6 +15,8 @@
 - **⚡ Concurrent Generation** - Beautiful CLI with real-time progress tracking
 - **🤖 AI-Powered Content** - Generate realistic variations automatically
 - **♻️ Reusable Patterns** - Build libraries of conversation templates
+- **💰 Cache Optimized (WIP)** - Reuses context across generations to reduce costs
+- **📉 Cost Efficient** - Concise, optimized structures and generation workflow lets you use smaller, cheaper models
 
 ## 🤔 Why Torque?
 
@@ -24,8 +26,10 @@ Building training datasets for LLMs is tedious:
 - Maintaining consistency across thousands of examples is error-prone
 - Tool calling patterns require intricate message sequences
 - Testing different conversation flows means rewriting everything
+- Writing generators that are both **random and deterministic** is surprisingly complex
+- Getting AI to understand complex composition scenarios (nested variations, conditional flows) takes significant prompt engineering time
 
-**Torque solves this** with a declarative approach. Just like React transformed UI development from imperative DOM manipulation to composable components, Torque transforms dataset generation from manual JSON editing to declarative conversation schemas.
+**Torque solves this** with a declarative approach. Just like React transformed UI development from imperative DOM manipulation to composable components, Torque transforms dataset generation from manual JSON editing or writing complicated scripts to declarative conversation schemas. Plus, its optimized structure means you can use smaller, cheaper models while benefiting from cache optimization for lower costs.
 
 ## 🚀 Quick Start
 
