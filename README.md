@@ -188,7 +188,8 @@ import {
 } from "@qforge/torque";
 import { z } from "zod";
 
-const weatherTool = tool({
+// use standard tool schema using zod ensuring complete type safety
+const weatherTool = tool({ 
   name: "get_weather",
   description: "Get current weather for a location",
   parameters: z.object({
@@ -204,8 +205,8 @@ const weatherTool = tool({
 const schema = () => [
   weatherTool.toolFunction(),
   generatedUser({ prompt: "Ask about weather in a city" }),
-  generatedToolCall(weatherTool, "t1"),
-  generatedToolCallResult(weatherTool, "t1"),
+  generatedToolCall(weatherTool, "t1"), // type safe 100% correct generated tool calls
+  generatedToolCallResult(weatherTool, "t1"), // similarly 100% correct generated tool results
   generatedAssistant({ prompt: "Interpret the weather data for the user" }),
 ];
 ```
