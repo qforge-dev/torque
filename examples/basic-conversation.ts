@@ -11,7 +11,7 @@ import {
   assistant,
   generatedUser,
   generatedAssistant,
-} from "torque";
+} from "@qforge/torque";
 import { openai } from "@ai-sdk/openai";
 
 // Example 1: Static Conversations

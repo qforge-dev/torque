@@ -32,15 +32,15 @@ Building training datasets for LLMs is tedious:
 ### Installation
 
 ```bash
-bun add torque
+bun add @qforge/torque
 # or
-npm install torque
+npm install @qforge/torque
 ```
 
 ### Basic Example
 
 ```typescript
-import { generateDataset, user, assistant } from "torque";
+import { generateDataset, user, assistant } from "@qforge/torque";
 import { openai } from "@ai-sdk/openai";
 
 await generateDataset(
@@ -59,7 +59,7 @@ await generateDataset(
 ### AI-Generated Content
 
 ```typescript
-import { generatedUser, generatedAssistant } from "torque";
+import { generatedUser, generatedAssistant } from "@qforge/torque";
 
 await generateDataset(
   () => [
@@ -87,7 +87,7 @@ Each of the 100 examples will have unique, AI-generated questions and answers!
 Build conversations by composing message schemas:
 
 ```typescript
-import { user, assistant, system } from "torque";
+import { user, assistant, system } from "@qforge/torque";
 
 const schema = () => [
   system({ content: "You are a helpful assistant." }),
@@ -101,7 +101,7 @@ const schema = () => [
 Use prompts to generate realistic variations:
 
 ```typescript
-import { generatedUser, generatedAssistant } from "torque";
+import { generatedUser, generatedAssistant } from "@qforge/torque";
 
 const schema = () => [
   generatedUser({
@@ -118,7 +118,11 @@ const schema = () => [
 Define tools with Zod schemas for complete type safety:
 
 ```typescript
-import { tool, generatedToolCall, generatedToolCallResult } from "torque";
+import {
+  tool,
+  generatedToolCall,
+  generatedToolCallResult,
+} from "@qforge/torque";
 import { z } from "zod";
 
 const weatherTool = tool({
@@ -148,7 +152,7 @@ const schema = () => [
 Build dynamic, varied datasets with composition helpers:
 
 ```typescript
-import { oneOf, times, between, optional } from "torque";
+import { oneOf, times, between, optional } from "@qforge/torque";
 
 const schema = () => [
   // Choose randomly from options
@@ -201,7 +205,7 @@ import {
   tool,
   times,
   between,
-} from "torque";
+} from "@qforge/torque";
 import { z } from "zod";
 
 const searchTool = tool({
@@ -294,7 +298,7 @@ await generateDataset(schema, {
 Generate datasets with different tools:
 
 ```typescript
-import { oneOf } from "torque";
+import { oneOf } from "@qforge/torque";
 
 const tools = [weatherTool, calculatorTool, searchTool];
 

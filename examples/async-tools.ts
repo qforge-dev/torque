@@ -20,7 +20,7 @@ import {
   generatedToolCallResult,
   times,
   between,
-} from "torque";
+} from "@qforge/torque";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 
