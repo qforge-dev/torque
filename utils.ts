@@ -85,10 +85,6 @@ export async function processBatchWithConcurrency<T, R>(
   return results;
 }
 
-export function randomSample<T>(n: number, array: T[]): T[] {
-  return array.sort(() => random() - 0.5).slice(0, n);
-}
-
 export type Awaitable<T> = T | Promise<T>;
 
 export function toolsToToolDefinitionArray(tools?: unknown): IToolDefinition[] {

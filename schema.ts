@@ -308,3 +308,7 @@ export function times<T>(n: number, message: T): T extends any[] ? T : T[] {
 export function between(min: number, max: number): number {
   return Math.floor(random() * (max - min + 1)) + min;
 }
+
+export function randomSample<T>(n: number, array: T[]): T[] {
+  return array.sort(() => random() - 0.5).slice(0, n);
+}
