@@ -123,7 +123,7 @@ const schema = () => [
 ];
 ```
 
-> 💡 See full example: [`examples/schema-composition.ts`](examples/schema-composition.ts)
+> 💡 See full example: [`examples/schema-composition.ts`](examples/schema-composition.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/schema-composition)
 
 ### Composition Utilities
 
@@ -154,7 +154,7 @@ const schema = () => [
 ];
 ```
 
-> 💡 See full example: [`examples/composition-utilities.ts`](examples/composition-utilities.ts)
+> 💡 See full example: [`examples/composition-utilities.ts`](examples/composition-utilities.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/composition-utilities)
 
 ### AI-Generated Messages
 
@@ -173,7 +173,7 @@ const schema = () => [
 ];
 ```
 
-> 💡 See full example: [`examples/basic-conversation.ts`](examples/basic-conversation.ts)
+> 💡 See full example: [`examples/basic-conversation.ts`](examples/basic-conversation.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/basic-conversation)
 
 ### Tool Definitions
 
@@ -209,7 +209,7 @@ const schema = () => [
 ];
 ```
 
-> 💡 See full example: [`examples/tool-calling.ts`](examples/tool-calling.ts)
+> 💡 See full example: [`examples/tool-calling.ts`](examples/tool-calling.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/tool-calling)
 
 ### Two-Phase Execution
 
@@ -308,7 +308,7 @@ await generateDataset(
 );
 ```
 
-> 💡 See full example: [`examples/async-tools.ts`](examples/async-tools.ts)
+> 💡 See full example: [`examples/async-tools.ts`](examples/async-tools.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/async-tools)
 
 ### Custom Generation Context
 
@@ -351,7 +351,7 @@ await generateDataset(schema, {
 });
 ```
 
-> 💡 See full example: [`examples/custom-generation-context.ts`](examples/custom-generation-context.ts)
+> 💡 See full example: [`examples/custom-generation-context.ts`](examples/custom-generation-context.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/custom-generation-context)
 
 ### Multiple Tool Variations
 
@@ -382,7 +382,7 @@ await generateDataset(
 );
 ```
 
-> 💡 See full example: [`examples/multiple-tool-variations.ts`](examples/multiple-tool-variations.ts)
+> 💡 See full example: [`examples/multiple-tool-variations.ts`](examples/multiple-tool-variations.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/multiple-tool-variations)
 
 ## 📖 API Reference
 
@@ -554,16 +554,16 @@ Example output:
 │ Completed:   45                                    │
 │ In Progress: 5                                     │
 │ Seed:        42                                    │
-│ Output:      data/dataset_2025-10-30.jsonl        │
+│ Output:      data/dataset_2025-10-30.jsonl         │
 │ Workers:     5                                     │
 ├────────────────────────────────────────────────────┤
-│ ████████████░░░░░░░░░░░░░ 45%                     │
+│ ████████████░░░░░░░░░░░░░ 45%                      │
 ├────────────────────────────────────────────────────┤
 │ #0: [████████████████░░░░] 80% tool-result (search)│
-│ #1: [██████░░░░░░░░░░░░░░] 30% user message       │
+│ #1: [██████░░░░░░░░░░░░░░] 30% user message        │
 │ #2: [████████████████████] 100% Writing...         │
-│ #3: [██░░░░░░░░░░░░░░░░░░] 10% assistant message  │
-│ #4: [██████████░░░░░░░░░░] 50% tool-call (calc)   │
+│ #3: [██░░░░░░░░░░░░░░░░░░] 10% assistant message   │
+│ #4: [██████████░░░░░░░░░░] 50% tool-call (calc)    │
 ╰────────────────────────────────────────────────────╯
 ```
 
@@ -606,25 +606,6 @@ Contributions are welcome! This is part of a larger project exploring async tool
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) for details
-
-## 🌟 Examples
-
-Check out the [`examples/`](examples/) directory for complete, runnable examples. Each example can be run locally or tried instantly in your browser:
-
-| Example                                                                 | Description                               | Try Online                                                                                                                    |
-| ----------------------------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| [`quick-start.ts`](examples/quick-start.ts)                             | Simplest possible example to get started  | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/quick-start)               |
-| [`basic-conversation.ts`](examples/basic-conversation.ts)               | Static and AI-generated conversations     | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/basic-conversation)        |
-| [`composition-utilities.ts`](examples/composition-utilities.ts)         | Using oneOf, times, between, optional     | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/composition-utilities)     |
-| [`schema-composition.ts`](examples/schema-composition.ts)               | Composing reusable schema patterns        | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/schema-composition)        |
-| [`tool-calling.ts`](examples/tool-calling.ts)                           | Tool definitions and usage patterns       | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/tool-calling)              |
-| [`multiple-tool-variations.ts`](examples/multiple-tool-variations.ts)   | Using oneOf with multiple tools           | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/multiple-tool-variations)  |
-| [`async-tools.ts`](examples/async-tools.ts)                             | Async tool workflows with acknowledgments | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/async-tools)               |
-| [`custom-generation-context.ts`](examples/custom-generation-context.ts) | Customizing AI generation behavior        | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/custom-generation-context) |
-
-**💡 Pro tip:** All interactive examples support your own OpenAI API key - no signup or demo limits!
-
-**Alternative:** You can also open any example in [CodeSandbox](https://codesandbox.io) by changing the URL from `stackblitz.com` to `codesandbox.io/p`. Both platforms work identically!
 
 ## 🔗 Related
 
