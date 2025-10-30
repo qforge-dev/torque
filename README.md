@@ -42,7 +42,26 @@ await generateDataset(
 );
 ```
 
-> 💡 See full example: [`examples/quick-start.ts`](examples/quick-start.ts)
+> 💡 See full example: [`examples/quick-start.ts`](examples/quick-start.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/quick-start)
+
+## 🌐 Try Online
+
+**No installation required!** Try Torque directly in your browser with our interactive playgrounds:
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/quick-start)
+
+All examples are available as interactive playgrounds where you can:
+- ✅ Run code instantly in your browser
+- ✅ Use your own OpenAI API key (BYOK)
+- ✅ Modify and experiment with the code
+- ✅ See results in real-time
+
+**Getting Started:**
+1. Click any "Try in Browser" link below
+2. Add your `OPENAI_API_KEY` environment variable (click 🔒 icon in StackBlitz)
+3. Click "Run" and watch your dataset generate!
+
+See all interactive examples in the [Examples](#-examples) section below.
 
 Outputs:
 
@@ -611,16 +630,22 @@ MIT License - see [LICENSE](LICENSE) for details
 
 ## 🌟 Examples
 
-Check out the [`examples/`](examples/) directory for complete, runnable examples:
+Check out the [`examples/`](examples/) directory for complete, runnable examples. Each example can be run locally or tried instantly in your browser:
 
-- [`quick-start.ts`](examples/quick-start.ts) - Simplest possible example to get started
-- [`schema-composition.ts`](examples/schema-composition.ts) - Composing reusable schema patterns
-- [`composition-utilities.ts`](examples/composition-utilities.ts) - Using oneOf, times, between, optional
-- [`basic-conversation.ts`](examples/basic-conversation.ts) - Static and AI-generated conversations
-- [`tool-calling.ts`](examples/tool-calling.ts) - Tool definitions and usage patterns
-- [`multiple-tool-variations.ts`](examples/multiple-tool-variations.ts) - Using oneOf with multiple tools
-- [`async-tools.ts`](examples/async-tools.ts) - Async tool workflows with acknowledgments
-- [`custom-generation-context.ts`](examples/custom-generation-context.ts) - Customizing AI generation behavior
+| Example | Description | Try Online |
+|---------|-------------|------------|
+| [`quick-start.ts`](examples/quick-start.ts) | Simplest possible example to get started | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/quick-start) |
+| [`basic-conversation.ts`](examples/basic-conversation.ts) | Static and AI-generated conversations | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/basic-conversation) |
+| [`composition-utilities.ts`](examples/composition-utilities.ts) | Using oneOf, times, between, optional | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/composition-utilities) |
+| [`schema-composition.ts`](examples/schema-composition.ts) | Composing reusable schema patterns | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/schema-composition) |
+| [`tool-calling.ts`](examples/tool-calling.ts) | Tool definitions and usage patterns | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/tool-calling) |
+| [`multiple-tool-variations.ts`](examples/multiple-tool-variations.ts) | Using oneOf with multiple tools | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/multiple-tool-variations) |
+| [`async-tools.ts`](examples/async-tools.ts) | Async tool workflows with acknowledgments | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/async-tools) |
+| [`custom-generation-context.ts`](examples/custom-generation-context.ts) | Customizing AI generation behavior | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/custom-generation-context) |
+
+**💡 Pro tip:** All interactive examples support your own OpenAI API key - no signup or demo limits!
+
+**Alternative:** You can also open any example in [CodeSandbox](https://codesandbox.io) by changing the URL from `stackblitz.com` to `codesandbox.io/p`. Both platforms work identically!
 
 ## 🔗 Related
 

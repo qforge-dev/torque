@@ -1,0 +1,102 @@
+/**
+ * Basic Conversation Example - Torque Interactive Playground
+ * 
+ * This example demonstrates:
+ * - Static conversations (hardcoded messages)
+ * - AI-generated conversations
+ * - Custom generation context
+ * 
+ * 🔑 BEFORE RUNNING:
+ * 1. Click on the 🔒 icon in the bottom left
+ * 2. Add environment variable: OPENAI_API_KEY=your-key-here
+ * 3. Click "Run" or press Ctrl+Enter
+ */
+
+import {
+  generateDataset,
+  user,
+  assistant,
+  generatedUser,
+  generatedAssistant,
+} from "@qforge/torque";
+import { openai } from "@ai-sdk/openai";
+
+// Get API key from environment variable
+const apiKey = process.env.OPENAI_API_KEY;
+
+if (!apiKey) {
+  console.error("❌ ERROR: OPENAI_API_KEY not found!");
+  console.log("\n📝 To add your API key:");
+  console.log("1. Click the 🔒 icon in the bottom left corner");
+  console.log("2. Add: OPENAI_API_KEY=your-key-here");
+  console.log("3. Run this script again\n");
+  process.exit(1);
+}
+
+console.log("✅ API key loaded successfully!");
+console.log("🚀 Starting dataset generation...\n");
+
+// Example 1: Static Conversations
+console.log("📝 Generating static conversations...");
+await generateDataset(
+  () => [
+    user({ content: "Hello! I need help with TypeScript." }),
+    assistant({
+      content:
+        "I'd be happy to help with TypeScript! What specific topic would you like to learn about?",
+    }),
+    user({ content: "How do I use generics?" }),
+    assistant({
+      content:
+        "Generics allow you to create reusable components that work with multiple types. Here's a simple example: `function identity<T>(arg: T): T { return arg; }`",
+    }),
+  ],
+  {
+    count: 3,
+    model: openai("gpt-4o-mini", { apiKey }),
+    output: "data/static-conversations.jsonl",
+    seed: 42,
+  }
+);
+
+// Example 2: AI-Generated Conversations
+console.log("\n🤖 Generating AI-powered conversations...");
+await generateDataset(
+  () => [
+    generatedUser({
+      prompt:
+        "User asks a programming question about any language or framework",
+    }),
+    generatedAssistant({
+      prompt:
+        "Assistant provides a helpful, detailed answer with code examples",
+    }),
+    generatedUser({
+      prompt: "User asks a follow-up question to clarify or dive deeper",
+    }),
+    generatedAssistant({
+      prompt: "Assistant provides additional details and examples",
+    }),
+  ],
+  {
+    count: 5,
+    model: openai("gpt-4o-mini", { apiKey }),
+    output: "data/generated-conversations.jsonl",
+    seed: 42,
+    generationContext: {
+      global: {
+        messages: [
+          {
+            role: "system",
+            content:
+              "Keep responses clear and concise. Use practical examples. Avoid overly formal language.",
+          },
+        ],
+      },
+    },
+  }
+);
+
+console.log("\n✨ Dataset generation complete!");
+console.log("📁 Check the 'data/' folder for generated files");
+

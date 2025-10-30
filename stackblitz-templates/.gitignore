@@ -1,0 +1,20 @@
+# Generated data files
+*/data/
+**/data/
+
+# Node modules
+*/node_modules/
+**/node_modules/
+
+# Build outputs
+*/dist/
+**/dist/
+
+# Environment files
+*/.env
+**/.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
