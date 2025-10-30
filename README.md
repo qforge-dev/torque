@@ -56,10 +56,11 @@ Outputs:
 
 Building training datasets for LLMs is tedious:
 
-- Manual conversation writing doesn't scale
+- Sometimes you don't have real non-synthetic data
+- Manual conversation writing doesn't scale with conversation length
 - Maintaining consistency across thousands of examples is error-prone
 - Tool calling patterns require intricate message sequences
-- Testing different conversation flows means rewriting everything
+- Testing different conversation flows means rewriting everything or adding tons of `if` statements
 - Writing generators that are both **random and deterministic** is surprisingly complex
 - Getting AI to understand complex composition scenarios (nested variations, conditional flows) takes significant prompt engineering time
 
@@ -210,6 +211,39 @@ const schema = () => [
 ```
 
 > 💡 See full example: [`examples/tool-calling.ts`](examples/tool-calling.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/tool-calling)
+
+### 🔐 TypeScript Support
+
+Torque is built with TypeScript and provides complete type safety. Both for user and AI generating the data. 
+Ensure that the arguments and tool results are always matching schema.
+
+```typescript
+// Full type inference for tool parameters
+const weatherTool = tool({
+  name: "weather",
+  parameters: z.object({
+    location: z.string(),
+    units: z.enum(["C", "F"]),
+  }),
+  output: z.object({
+    temp: z.number(),
+    condition: z.string(),
+  }),
+});
+
+// TypeScript knows the shape of parameters and output
+weatherTool.toolCall("t1", {
+  location: "NYC",
+  units: "C", // ✅ Type-safe
+  // units: 'K' // ❌ TypeScript error
+});
+
+weatherTool.toolCallResult("t1", {
+  temp: 72,
+  condition: "Sunny", // ✅ Type-safe
+  // humidity: 50 // ❌ TypeScript error
+});
+```
 
 ### Two-Phase Execution
 
@@ -384,155 +418,6 @@ await generateDataset(
 
 > 💡 See full example: [`examples/multiple-tool-variations.ts`](examples/multiple-tool-variations.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/multiple-tool-variations)
 
-## 📖 API Reference
-
-### Dataset Generation
-
-#### `generateDataset(schema, options)`
-
-Generate a complete dataset with concurrent execution.
-
-**Parameters:**
-
-- `schema: IMessageSchema` - Factory function returning conversation structure
-- `options`:
-  - `count: number` - Number of examples to generate
-  - `model: LanguageModel` - AI SDK language model (openai, anthropic, etc.)
-  - `output?: string` - Output file path (auto-generated if not provided)
-  - `seed?: number` - Random seed for reproducibility
-  - `concurrency?: number` - Concurrent generations (default: 5)
-  - `generationContext?: GenerationContext` - Custom generation instructions
-
-**Returns:** `Promise<IDatasetRow[]>`
-
-### Message Schemas
-
-#### `user({ content })`
-
-Create a static user message.
-
-```typescript
-user({ content: "Hello, assistant!" });
-```
-
-#### `assistant({ content })`
-
-Create a static assistant message.
-
-```typescript
-assistant({ content: "Hello! How can I help?" });
-```
-
-#### `system({ content })`
-
-Create a system message.
-
-```typescript
-system({ content: "You are a helpful assistant." });
-```
-
-#### `generatedUser({ prompt })`
-
-Generate a user message with AI.
-
-```typescript
-generatedUser({
-  prompt: "User asks about machine learning basics",
-});
-```
-
-#### `generatedAssistant({ prompt })`
-
-Generate an assistant message with AI.
-
-```typescript
-generatedAssistant({
-  prompt: "Explain the concept clearly with an example",
-});
-```
-
-### Tool Schemas
-
-#### `tool({ name, description, parameters, output })`
-
-Define a tool with Zod schemas.
-
-```typescript
-const myTool = tool({
-  name: "calculate",
-  description: "Perform calculations",
-  parameters: z.object({
-    operation: z.enum(["add", "subtract", "multiply", "divide"]),
-    a: z.number(),
-    b: z.number(),
-  }),
-  output: z.object({
-    result: z.number(),
-  }),
-});
-```
-
-**Returns:** `IToolDefinition` with methods:
-
-- `toolFunction()` - Register the tool
-- `toolCall(id, args)` - Create tool call
-- `toolCallResult(id, result)` - Create tool result
-
-#### `generatedToolCall(tool, id, options?)`
-
-Generate a tool call with AI-generated arguments.
-
-```typescript
-generatedToolCall(myTool, "call-1");
-generatedToolCall(myTool, "call-2", { reuseArgsFrom: "call-1" });
-```
-
-#### `generatedToolCallResult(tool, id, result?)`
-
-Generate a tool result. If `result` is omitted, it's AI-generated.
-
-```typescript
-generatedToolCallResult(myTool, "call-1");
-generatedToolCallResult(myTool, "call-2", { result: 42 });
-```
-
-### Composition Utilities
-
-#### `oneOf(options)`
-
-Randomly select one option.
-
-```typescript
-oneOf([user({ content: "Hi" }), user({ content: "Hello" })])();
-```
-
-#### `times(n, pattern)`
-
-Repeat a pattern n times.
-
-```typescript
-...times(3, [
-  generatedUser({ prompt: "Ask question" }),
-  generatedAssistant({ prompt: "Answer" })
-])
-```
-
-#### `between(min, max)`
-
-Generate random number between min and max (inclusive).
-
-```typescript
-...times(between(1, 5), pattern)
-```
-
-#### `optional(message)`
-
-Include message with 50% probability.
-
-```typescript
-optional(assistant({ content: "Anything else?" }));
-```
-
 ## 🎨 CLI Features
 
 Torque includes a beautiful CLI interface with:
@@ -543,8 +428,6 @@ Torque includes a beautiful CLI interface with:
 - **Concurrent execution** with configurable workers
 - **Seed display** for reproducible runs
 - **Output file location** clearly shown
-
-Example output:
 
 ```
 ╭────────────────────────────────────────────────────╮
@@ -567,37 +450,6 @@ Example output:
 ╰────────────────────────────────────────────────────╯
 ```
 
-## 🔐 TypeScript Support
-
-Torque is built with TypeScript and provides complete type safety:
-
-```typescript
-// Full type inference for tool parameters
-const weatherTool = tool({
-  name: "weather",
-  parameters: z.object({
-    location: z.string(),
-    units: z.enum(["C", "F"]),
-  }),
-  output: z.object({
-    temp: z.number(),
-    condition: z.string(),
-  }),
-});
-
-// TypeScript knows the shape of parameters and output
-weatherTool.toolCall("t1", {
-  location: "NYC",
-  units: "C", // ✅ Type-safe
-  // units: 'K' // ❌ TypeScript error
-});
-
-weatherTool.toolCallResult("t1", {
-  temp: 72,
-  condition: "Sunny", // ✅ Type-safe
-  // humidity: 50 // ❌ TypeScript error
-});
-```
 
 ## 🤝 Contributing
 
