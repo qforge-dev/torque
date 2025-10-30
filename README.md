@@ -26,16 +26,17 @@ import { openai } from "@ai-sdk/openai";
 
 await generateDataset(
   () => [
-    generatedUser({
-      prompt: "Ask a friendly greeting or introduction",
-    }),
-    assistant({
-      content: "Hello! I'm here to help. What can I do for you today?",
-    }),
+    generatedUser({ prompt: "Friendly greeting or introduction" }), // AI generated
+    oneOf([
+      // pick one randomly
+      assistant({ content: "Hello!" }), // static
+      generatedAssistant({ prompt: "Respond to greeting" }), // AI generated
+    ]),
   ],
   {
-    count: 2,
-    model: openai("gpt-4"),
+    count: 2, // number of examples
+    model: openai("gpt-5-mini"), // any ai-sdk model
+    seed: 42, // replayable RNG
   }
 );
 ```
@@ -43,9 +44,9 @@ await generateDataset(
 Outputs:
 
 ```json
-{"messages":[{"role":"user","content":"Hi there! I'm new here and just wanted to say hello."},{"role":"assistant","content":"Hello! I'm here to help. What can I do for you today?"}]}
+{"messages":[{"role":"user","content":[{"type":"text","text":"Hi there! I'm new here and just wanted to say hello."}]},{"role":"assistant","content":[{"type":"text","text":"Hello!"}]}]}
 
-{"messages":[{"role":"user","content":"Hey! Hope you're having a great day."},{"role":"assistant","content":"Hello! I'm here to help. What can I do for you today?"}]}
+{"messages":[{"role":"user","content":[{"type":"text","text":"Hey! Hope you're having a great day."}]},{"role":"assistant","content":[{"type":"text","text":"Hey there! Thanks for reaching out. I'm doing great, how can I assist you today?"}]}]}
 ```
 
 Notice how each user message is uniquely generated while the assistant response stays consistent!
@@ -71,32 +72,6 @@ bun add @qforge/torque
 npm install @qforge/torque
 ```
 
-## 🎓 More Examples
-
-### AI-Generated Content
-
-```typescript
-import { generatedUser, generatedAssistant } from "@qforge/torque";
-
-await generateDataset(
-  () => [
-    generatedUser({
-      prompt: "Ask a technical question about programming",
-    }),
-    generatedAssistant({
-      prompt: "Provide a helpful, detailed answer",
-    }),
-  ],
-  {
-    count: 100,
-    model: openai("gpt-4"),
-    output: "data/qa.jsonl",
-  }
-);
-```
-
-Each of the 100 examples will have unique, AI-generated questions and answers!
-
 ## 📚 Core Concepts
 
 ### Message Schemas
@@ -110,6 +85,35 @@ const schema = () => [
   system({ content: "You are a helpful assistant." }),
   user({ content: "Hello!" }),
   assistant({ content: "Hi! How can I help?" }),
+];
+```
+
+### Composition Utilities
+
+Build dynamic, varied datasets with composition helpers:
+
+```typescript
+import { oneOf, times, between, optional } from "@qforge/torque";
+
+const schema = () => [
+  // Choose randomly from options
+  oneOf([
+    user({ content: "Hello" }),
+    user({ content: "Hi there" }),
+    user({ content: "Hey" }),
+  ])(),
+
+  // Repeat pattern 3 times
+  ...times(3, [
+    generatedUser({ prompt: "Ask a question" }),
+    generatedAssistant({ prompt: "Answer the question" }),
+  ]),
+
+  // Repeat random number of times (1-5)
+  ...times(between(1, 5), [generatedUser({ prompt: "Follow-up question" })]),
+
+  // Optionally include (50% chance)
+  optional(assistant({ content: "Anything else I can help with?" })),
 ];
 ```
 
@@ -161,35 +165,6 @@ const schema = () => [
   generatedToolCall(weatherTool, "t1"),
   generatedToolCallResult(weatherTool, "t1"),
   generatedAssistant({ prompt: "Interpret the weather data for the user" }),
-];
-```
-
-### Composition Utilities
-
-Build dynamic, varied datasets with composition helpers:
-
-```typescript
-import { oneOf, times, between, optional } from "@qforge/torque";
-
-const schema = () => [
-  // Choose randomly from options
-  oneOf([
-    user({ content: "Hello" }),
-    user({ content: "Hi there" }),
-    user({ content: "Hey" }),
-  ])(),
-
-  // Repeat pattern 3 times
-  ...times(3, [
-    generatedUser({ prompt: "Ask a question" }),
-    generatedAssistant({ prompt: "Answer the question" }),
-  ]),
-
-  // Repeat random number of times (1-5)
-  ...times(between(1, 5), [generatedUser({ prompt: "Follow-up question" })]),
-
-  // Optionally include (50% chance)
-  optional(assistant({ content: "Anything else I can help with?" })),
 ];
 ```
 
