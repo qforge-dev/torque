@@ -18,6 +18,38 @@
 - **💰 Cache Optimized (WIP)** - Reuses context across generations to reduce costs
 - **📉 Cost Efficient** - Concise, optimized structures and generation workflow lets you use smaller, cheaper models
 
+## 🚀 Quick Example
+
+```typescript
+import { generateDataset, generatedUser, assistant } from "@qforge/torque";
+import { openai } from "@ai-sdk/openai";
+
+await generateDataset(
+  () => [
+    generatedUser({
+      prompt: "Ask a friendly greeting or introduction",
+    }),
+    assistant({
+      content: "Hello! I'm here to help. What can I do for you today?",
+    }),
+  ],
+  {
+    count: 2,
+    model: openai("gpt-4"),
+  }
+);
+```
+
+Outputs:
+
+```json
+{"messages":[{"role":"user","content":"Hi there! I'm new here and just wanted to say hello."},{"role":"assistant","content":"Hello! I'm here to help. What can I do for you today?"}]}
+
+{"messages":[{"role":"user","content":"Hey! Hope you're having a great day."},{"role":"assistant","content":"Hello! I'm here to help. What can I do for you today?"}]}
+```
+
+Notice how each user message is uniquely generated while the assistant response stays consistent!
+
 ## 🤔 Why Torque?
 
 Building training datasets for LLMs is tedious:
@@ -31,9 +63,7 @@ Building training datasets for LLMs is tedious:
 
 **Torque solves this** with a declarative approach. Just like React transformed UI development from imperative DOM manipulation to composable components, Torque transforms dataset generation from manual JSON editing or writing complicated scripts to declarative conversation schemas. Plus, its optimized structure means you can use smaller, cheaper models while benefiting from cache optimization for lower costs.
 
-## 🚀 Quick Start
-
-### Installation
+## 📦 Installation
 
 ```bash
 bun add @qforge/torque
@@ -41,26 +71,7 @@ bun add @qforge/torque
 npm install @qforge/torque
 ```
 
-### Basic Example
-
-```typescript
-import { generateDataset, user, generatedAssistant } from "@qforge/torque";
-import { openai } from "@ai-sdk/openai";
-
-await generateDataset(
-  () => [
-    user({ content: "What's the weather like?" }),
-    generatedAssistant({
-      prompt: "Provide a helpful response about weather information access",
-    }),
-  ],
-  {
-    count: 10,
-    model: openai("gpt-4"),
-    output: "data/conversations.jsonl",
-  }
-);
-```
+## 🎓 More Examples
 
 ### AI-Generated Content
 
