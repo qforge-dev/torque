@@ -14,8 +14,12 @@ import {
   tool,
   oneOf,
 } from "@qforge/torque";
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { z } from "zod";
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // Define multiple tools
 const weatherTool = tool({

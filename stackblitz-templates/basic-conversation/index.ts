@@ -12,7 +12,7 @@ import {
   generatedUser,
   generatedAssistant,
 } from "@qforge/torque";
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 
 // Get API key from environment variable
 const apiKey = process.env.OPENAI_API_KEY;
@@ -28,6 +28,10 @@ if (!apiKey) {
 
 console.log("✅ API key loaded successfully!");
 console.log("🚀 Starting dataset generation...\n");
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // Example 1: Static Conversations
 await generateDataset(

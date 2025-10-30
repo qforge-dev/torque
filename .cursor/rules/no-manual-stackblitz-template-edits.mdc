@@ -1,0 +1,36 @@
+---
+description: Never manually edit StackBlitz template files - they are auto-generated
+globs: "stackblitz-templates/**/*.ts, stackblitz-templates/**/*.tsx, stackblitz-templates/**/*.json, stackblitz-templates/**/*.md"
+alwaysApply: true
+---
+
+# StackBlitz Templates Auto-Generation Rule
+
+**NEVER manually edit files in `stackblitz-templates/` (except for `stackblitz-templates/_templates/`).**
+
+These files are automatically generated through a script. Any manual changes will be overwritten.
+
+## What you CAN edit:
+- ✅ `stackblitz-templates/_templates/*` - These are the source templates
+- ✅ `examples/*` - The original example files
+
+## What you CANNOT edit:
+- ❌ `stackblitz-templates/async-tools/`
+- ❌ `stackblitz-templates/basic-conversation/`
+- ❌ `stackblitz-templates/composition-utilities/`
+- ❌ `stackblitz-templates/custom-generation-context/`
+- ❌ `stackblitz-templates/multiple-tool-variations/`
+- ❌ `stackblitz-templates/quick-start/`
+- ❌ `stackblitz-templates/schema-composition/`
+- ❌ `stackblitz-templates/tool-calling/`
+
+## How to make changes:
+
+1. Edit the source files in `examples/` directory
+2. Edit templates in `stackblitz-templates/_templates/` if needed
+3. Run the generation script to update all StackBlitz templates:
+   ```bash
+   bun run scripts/generate-stackblitz-templates.ts
+   ```
+
+If you need to make changes to StackBlitz templates, suggest running the generation script instead of editing files directly.

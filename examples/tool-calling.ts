@@ -14,8 +14,12 @@ import {
   generatedToolCallResult,
   oneOf,
 } from "@qforge/torque";
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { z } from "zod";
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // Define a calculator tool
 const calculatorTool = tool({
@@ -67,7 +71,7 @@ await generateDataset(
   ],
   {
     count: 25,
-    model: openai("gpt-4o-mini"),
+    model: openai("gpt-5-mini"),
     output: "data/calculator-usage.jsonl",
     seed: 100,
   }
@@ -97,7 +101,7 @@ await generateDataset(
   },
   {
     count: 50,
-    model: openai("gpt-4o-mini"),
+    model: openai("gpt-5-mini"),
     output: "data/multi-tool-usage.jsonl",
     seed: 200,
     concurrency: 3,
@@ -127,7 +131,7 @@ await generateDataset(
   ],
   {
     count: 20,
-    model: openai("gpt-4o-mini"),
+    model: openai("gpt-5-mini"),
     output: "data/multi-call-conversation.jsonl",
     seed: 300,
   }

@@ -14,7 +14,7 @@ import {
   generatedToolCallResult,
   oneOf,
 } from "@qforge/torque";
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { z } from "zod";
 
 // Get API key from environment variable
@@ -31,6 +31,10 @@ if (!apiKey) {
 
 console.log("✅ API key loaded successfully!");
 console.log("🚀 Starting dataset generation...\n");
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // Define a calculator tool
 const calculatorTool = tool({

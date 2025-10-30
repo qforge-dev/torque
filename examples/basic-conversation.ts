@@ -12,7 +12,11 @@ import {
   generatedUser,
   generatedAssistant,
 } from "@qforge/torque";
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // Example 1: Static Conversations
 await generateDataset(
@@ -30,7 +34,7 @@ await generateDataset(
   ],
   {
     count: 10,
-    model: openai("gpt-4o-mini"),
+    model: openai("gpt-5-mini"),
     output: "data/static-conversations.jsonl",
     seed: 42,
   }
@@ -56,7 +60,7 @@ await generateDataset(
   ],
   {
     count: 50,
-    model: openai("gpt-4o-mini"),
+    model: openai("gpt-5-mini"),
     output: "data/generated-conversations.jsonl",
     seed: 42,
     generationContext: {

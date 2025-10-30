@@ -125,7 +125,7 @@ export function toolsToToolDefinitionArray(tools?: unknown): IToolDefinition[] {
 export function countTokens(
   messages: IDatasetMessage[],
   tools: IDatasetTool[],
-  model: string = "gpt-4o"
+  model: string = "gpt-5"
 ): { messages: number; tools: number; total: number } {
   const encoding = encoding_for_model(model as any);
 
