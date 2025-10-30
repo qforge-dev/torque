@@ -1,0 +1,30 @@
+# Source files (we ship the built dist/ folder)
+*.ts
+!*.d.ts
+
+# Config files
+tsconfig.json
+tsconfig.build.json
+.cursor/
+
+# Development files
+examples/
+node_modules/
+.git/
+.gitignore
+
+# Build artifacts
+*.log
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+

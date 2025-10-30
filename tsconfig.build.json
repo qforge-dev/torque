@@ -1,0 +1,40 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Enable emitting files for build
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    
+    // Output directory
+    "outDir": "./dist",
+    "rootDir": "./",
+    
+    // Module settings for Node.js compatibility
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false,
+    "verbatimModuleSyntax": false,
+    
+    // Ensure compatibility
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "index.ts",
+    "dataset.ts",
+    "schema.ts",
+    "types.ts",
+    "generators.ts",
+    "utils.ts",
+    "ai.ts",
+    "cli-renderer.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "examples"
+  ]
+}
+
