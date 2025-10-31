@@ -58,9 +58,9 @@ await generateDataset(
 Outputs:
 
 ```json
-{"messages":[{"role":"user","content":[{"type":"text","text":"Hi there! I'm new here and just wanted to say hello."}]},{"role":"assistant","content":[{"type":"text","text":"Hello!"}]}]}
+{"messages":[{"role":"user","content":[{"type":"text","text":"Hi there! I'm new here and just wanted to say hello."}]},{"role":"assistant","content":[{"type":"text","text":"Hello!"}]},{"role":"user","content":[{"type":"text","text":"The sunshine today is perfect for a walk in the park."}]},{"role":"assistant","content":[{"type":"text","text":"Absolutely—warm and bright out there."}]},{"role":"user","content":[{"type":"text","text":"Do you think the clouds will roll in later this evening?"}]},{"role":"assistant","content":[{"type":"text","text":"Maybe briefly, but it should stay mostly clear."}]}]}
 
-{"messages":[{"role":"user","content":[{"type":"text","text":"Hey! Hope you're having a great day."}]},{"role":"assistant","content":[{"type":"text","text":"Hey there! Thanks for reaching out. I'm doing great, how can I assist you today?"}]}]}
+{"messages":[{"role":"user","content":[{"type":"text","text":"Hey! Hope you're having a great day."}]},{"role":"assistant","content":[{"type":"text","text":"Hi there! I'm doing great—what can I help you with?"}]},{"role":"user","content":[{"type":"text","text":"The weather keeps flipping between sun and drizzle lately."}]},{"role":"assistant","content":[{"type":"text","text":"Totally—it’s been bouncing around all week."}]},{"role":"user","content":[{"type":"text","text":"Should I expect rain again tonight?"}]},{"role":"assistant","content":[{"type":"text","text":"Pack an umbrella just in case; there’s a chance of showers."}]},{"role":"user","content":[{"type":"text","text":"Thanks! I’ll be prepared if it turns stormy."}]},{"role":"assistant","content":[{"type":"text","text":"Good call—better to stay dry than sorry."}]}]}
 ```
 
 > 💡 See full example: [`examples/quick-start.ts`](examples/quick-start.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/quick-start)
