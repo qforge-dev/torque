@@ -14,6 +14,7 @@
 - **🔒 Fully Typesafe** - Zod schemas with complete type inference
 - **🔌 Provider Agnostic** - Generate with any AI SDK provider (OpenAI, Anthropic, DeepSeek, vLLM, LLaMA.cpp etc.)
 - **🤖 AI-Powered Content** - Generate realistic varied datasets automatically without complicated scripts
+- **🎭 Faker Integration** - Built-in Faker.js with automatic seed synchronization for reproducible fake data
 - **💰 Cache Optimized** - Reuses context across generations to reduce costs
 - **📉 Prompt Optimized** - Concise, optimized structures, prompts and generation workflow lets you use smaller, cheaper models
 - **♻️ Reusable Patterns** - Build libraries of conversation templates
@@ -417,6 +418,45 @@ await generateDataset(
 ```
 
 > 💡 See full example: [`examples/multiple-tool-variations.ts`](examples/multiple-tool-variations.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/multiple-tool-variations)
+
+### Realistic Fake Data with Faker
+
+Torque includes built-in [Faker.js](https://fakerjs.dev/) integration that automatically respects the seed system for reproducible fake data generation:
+
+```typescript
+import { generateDataset, generatedUser, generatedAssistant, faker } from "@qforge/torque";
+
+await generateDataset(
+  () => [
+    generatedUser({
+      prompt: `Introduce yourself as ${faker.person.fullName()} from ${faker.location.city()}`,
+    }),
+    generatedAssistant({
+      prompt: "Greet the user warmly",
+    }),
+  ],
+  {
+    count: 100,
+    model: openai("gpt-4"),
+    output: "data/personas.jsonl",
+    seed: 42, // Same seed = same fake names and cities
+  }
+);
+```
+
+**Faker automatically uses Torque's seed system**, so:
+- Same seed = identical fake data across runs
+- No manual seed configuration needed
+- Perfect for creating realistic user personas, product data, addresses, emails, etc.
+
+**Common use cases:**
+- User personas: `faker.person.fullName()`, `faker.person.jobTitle()`
+- Locations: `faker.location.city()`, `faker.location.country()`
+- E-commerce: `faker.commerce.productName()`, `faker.commerce.price()`
+- Contact info: `faker.internet.email()`, `faker.phone.number()`
+- Dates: `faker.date.future()`, `faker.date.past()`
+
+> 💡 See full example: [`examples/faker-integration.ts`](examples/faker-integration.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/faker-integration)
 
 ## 🎨 CLI Features
 
