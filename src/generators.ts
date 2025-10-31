@@ -132,7 +132,6 @@ export function generateToolCallArgs<T extends z.ZodObject>(
       {
         role: "system",
         content:
-          prompt ??
           `You are a tool call arguments generator. You are given a schema and a prompt. You need to generate the arguments for the tool call.
           Generate realistic, contextually appropriate arguments (based on the conversation history) that match the tool's parameter schema in JSON format.
           Make sure the parameters match the user's latest request.
@@ -141,6 +140,8 @@ export function generateToolCallArgs<T extends z.ZodObject>(
         ${context.acc.messages
           .map((m) => `- ${m.role}: ${JSON.stringify(m.content, null, 2)}`)
           .join("\n")}
+
+        ${prompt ?? ""}
         `.trim(),
       },
       {
@@ -174,7 +175,6 @@ export function generateToolResult<T extends z.ZodType>(
       {
         role: "system",
         content:
-          prompt ??
           `You are a tool result generator. You are given a schema and a tool call. You need to generate the result for the tool call.
           
         ## Message History
@@ -184,6 +184,8 @@ export function generateToolResult<T extends z.ZodType>(
           
         ## Tool Call
         Arguments: ${JSON.stringify(existingCallArgs, null, 2)}
+
+        ${prompt ?? ""}
         `.trim(),
       },
       {

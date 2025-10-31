@@ -117,7 +117,7 @@ export function generatedAssistant({
 export function generatedToolCall<T extends z.ZodObject>(
   tool: IToolDefinition<T>,
   id: string,
-  options?: { reuseArgsFrom?: string }
+  options?: { reuseArgsFrom?: string; prompt?: string }
 ): (context: IMessageSchemaContext) => Awaitable<IToolCallSchema<z.infer<T>>> {
   return async (context) => {
     const { phase } = context;
@@ -133,7 +133,11 @@ export function generatedToolCall<T extends z.ZodObject>(
 
     const effectiveId = options?.reuseArgsFrom ?? id;
     const parameters = tool.toolFunction()(context).parameters;
-    const args = await generateToolCallArgs(parameters, effectiveId)(context);
+    const args = await generateToolCallArgs(
+      parameters,
+      effectiveId,
+      options?.prompt
+    )(context);
 
     return {
       role: "assistant",
@@ -150,7 +154,9 @@ export function generatedToolCallResult<
 >(
   tool: IToolDefinition<T, R>,
   id: string,
-  result?: z.infer<R>
+  options?: {
+    prompt?: string;
+  }
 ): (
   context: IMessageSchemaContext
 ) => Awaitable<IToolCallResultSchema<z.infer<R>>> {
@@ -168,18 +174,11 @@ export function generatedToolCallResult<
       };
     }
 
-    // If result is explicitly provided, use it
-    if (result !== undefined) {
-      return {
-        role: "tool",
-        toolCallId: id,
-        toolName,
-        result,
-      };
-    }
-
-    // Otherwise, generate the result using AI
-    const generatedResult = await generateToolResult(tool.output, id)(context);
+    const generatedResult = await generateToolResult(
+      tool.output,
+      id,
+      options?.prompt
+    )(context);
 
     return {
       role: "tool",
