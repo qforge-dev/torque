@@ -9,8 +9,8 @@ import {
   generateDataset,
   generatedUser,
   generatedAssistant,
-  times,
-  between,
+  // times,
+  // between,
 } from "@qforge/torque";
 import { createOpenAI } from "@ai-sdk/openai";
 
@@ -30,36 +30,6 @@ const openai = createOpenAI({
   apiKey,
 });
 
-// Example 1: Global generation context
-await generateDataset(
-  () => [
-    generatedUser({ prompt: "Greeting" }),
-    generatedAssistant({ prompt: "Respond to greeting" }),
-    ...times(between(2, 4), [
-      generatedUser({ prompt: "Ask a question" }),
-      generatedAssistant({ prompt: "Answer the question" }),
-    ]),
-  ],
-  {
-    count: 10,
-    model: openai("gpt-5-mini"),
-    output: "data/custom-context-global.jsonl",
-    seed: 42,
-    generationContext: {
-      global: {
-        messages: [
-          {
-            role: "system",
-            content:
-              'Keep messages concise and natural. Avoid starting with "Sure" or "Thanks".',
-          },
-        ],
-      },
-    },
-  }
-);
-
-// Example 2: Role-specific generation context
 await generateDataset(
   () => [
     generatedUser({ prompt: "Technical question about programming" }),
@@ -102,50 +72,9 @@ await generateDataset(
     },
   }
 );
-
-// Example 3: Style-specific customization
-await generateDataset(
-  () => [
-    generatedUser({ prompt: "Casual conversation starter" }),
-    generatedAssistant({ prompt: "Respond in a friendly, casual way" }),
-    ...times(3, [
-      generatedUser({ prompt: "Continue casual conversation" }),
-      generatedAssistant({ prompt: "Keep the tone light and friendly" }),
-    ]),
-  ],
-  {
-    count: 15,
-    model: openai("gpt-5-mini"),
-    output: "data/custom-context-casual.jsonl",
-    seed: 200,
-    generationContext: {
-      global: {
-        messages: [
-          {
-            role: "system",
-            content:
-              "Keep the tone casual and friendly. Use contractions and informal language. Avoid corporate speak.",
-          },
-        ],
-      },
-      user: {
-        messages: [
-          {
-            role: "system",
-            content:
-              "User messages should sound natural and conversational, like texting a friend.",
-          },
-        ],
-      },
-      assistant: {
-        messages: [
-          {
-            role: "system",
-            content:
-              "Be warm and personable. Use emojis occasionally. Keep responses brief.",
-          },
-        ],
-      },
-    },
-  }
-);
+/*
+Variations:
+  - Casual tone: change the global message to "Keep the tone casual and friendly. Use contractions and keep responses short."
+  - Quick follow-ups: swap the user message for "Respond with quick, high-level follow-up questions only."
+  - Friendly assistant: replace the assistant message with "Be warm and personable. Use emojis occasionally. Keep responses brief."
+*/

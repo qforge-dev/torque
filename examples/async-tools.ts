@@ -62,7 +62,8 @@ const searchTool = tool({
   ]),
 });
 
-// Define a data analysis tool
+/*
+Data-analysis variant:
 const analysisTool = tool({
   name: "analyze_data",
   description: "Analyze a dataset and generate insights",
@@ -79,6 +80,7 @@ const analysisTool = tool({
     z.string(),
   ]),
 });
+*/
 
 await generateDataset(
   () => [
@@ -126,6 +128,31 @@ await generateDataset(
     generatedAssistant({
       prompt: "Present the search results in a helpful, organized way",
     }),
+    /*
+    To switch to the analysis scenario, enable the tool definition above and replace
+    the main body with:
+      analysisTool.toolFunction(),
+      generatedUser({ prompt: "Request analysis of a dataset" }),
+      generatedAssistant({ prompt: "Acknowledge and start the analysis" }),
+      generatedToolCall(analysisTool, "analysis-1"),
+      analysisTool.toolCallResult("analysis-1", "<tool_ack />"),
+      generatedAssistant({ prompt: "Explain the analysis will take some time due to dataset size" }),
+      ...times(between(2, 4), [
+        generatedUser({
+          prompt:
+            "Either ask about the analysis status or engage in unrelated conversation",
+        }),
+        generatedAssistant({
+          prompt:
+            "Respond appropriately - if asked about status, provide reassurance; otherwise engage naturally",
+        }),
+      ]),
+      generatedToolCall(analysisTool, "analysis-1-FINAL", { reuseArgsFrom: "analysis-1" }),
+      generatedToolCallResult(analysisTool, "analysis-1-FINAL"),
+      generatedAssistant({
+        prompt: "Present the analysis results with key insights highlighted",
+      }),
+    */
   ],
   {
     count: 30,
@@ -154,56 +181,5 @@ Avoid repetitive phrases like "Sure" or "Thanks" at the start of messages.`,
         ],
       },
     },
-  }
-);
-
-// Example with data analysis (longer async operation)
-await generateDataset(
-  () => [
-    analysisTool.toolFunction(),
-
-    generatedUser({
-      prompt: "Request analysis of a dataset",
-    }),
-
-    generatedAssistant({
-      prompt: "Acknowledge and start the analysis",
-    }),
-
-    generatedToolCall(analysisTool, "analysis-1"),
-    analysisTool.toolCallResult("analysis-1", "<tool_ack />"),
-
-    generatedAssistant({
-      prompt: "Explain the analysis will take some time due to dataset size",
-    }),
-
-    // More filler conversation (2-4 exchanges)
-    ...times(between(2, 4), [
-      generatedUser({
-        prompt:
-          "Either ask about the analysis status or engage in unrelated conversation",
-      }),
-      generatedAssistant({
-        prompt:
-          "Respond appropriately - if asked about status, provide reassurance; otherwise engage naturally",
-      }),
-    ]),
-
-    // Final result
-    generatedToolCall(analysisTool, "analysis-1-FINAL", {
-      reuseArgsFrom: "analysis-1",
-    }),
-    generatedToolCallResult(analysisTool, "analysis-1-FINAL"),
-
-    generatedAssistant({
-      prompt: "Present the analysis results with key insights highlighted",
-    }),
-  ],
-  {
-    count: 20,
-    model: openai("gpt-5-mini"),
-    output: "data/async-analysis.jsonl",
-    seed: 600,
-    concurrency: 2,
   }
 );

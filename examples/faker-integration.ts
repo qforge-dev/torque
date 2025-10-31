@@ -15,10 +15,10 @@ import {
   generatedUser,
   generatedAssistant,
   faker,
-  oneOf,
-  times,
-  between,
+  // times,
+  // between,
 } from "@qforge/torque";
+// Uncomment times/between above when experimenting with multi-turn variations.
 import { createOpenAI } from "@ai-sdk/openai";
 
 const apiKey = process.env.OPENAI_API_KEY;
@@ -37,8 +37,7 @@ const openai = createOpenAI({
   apiKey,
 });
 
-// Example 1: User Personas with Faker
-// Generate conversations with realistic user profiles
+// Generate conversations with realistic user profiles.
 await generateDataset(
   () => [
     generatedUser({
@@ -47,98 +46,31 @@ await generateDataset(
     generatedAssistant({
       prompt: "Warmly greet the user and acknowledge their introduction",
     }),
+    /*
+    Alternate prompt ideas:
+      - Product Q&A:
+          faker.commerce.productName(), faker.commerce.price({ symbol: "$" })
+      - Support triage:
+          faker.helpers.arrayElement(["account login", "billing", "technical issue", "feature request"]),
+          faker.internet.email(),
+          faker.string.alphanumeric(10)
+      - Appointment request:
+          faker.date.future().toLocaleDateString(), faker.date.future().toLocaleTimeString(), faker.phone.number()
+
+    For longer flows, reintroduce additional turns such as:
+      generatedUser({ prompt: `Ask to ship it to ${faker.location.streetAddress()}, ${faker.location.city()}` }),
+      generatedAssistant({ prompt: "Confirm the shipping address and provide next steps" }),
+      // ...times(between(1, 3), [...]) // requires uncommenting the helpers at the top
+    */
   ],
   {
     count: 10,
     model: openai("gpt-5-mini"),
     output: "data/faker-personas.jsonl",
     seed: 42, // Same seed = same names/cities every time
-  }
-);
-
-// Example 2: E-commerce Conversations
-// Use faker to generate product-related conversations
-await generateDataset(
-  () => [
-    generatedUser({
-      prompt: `Ask about a product: ${faker.commerce.productName()} priced at ${faker.commerce.price({ symbol: "$" })}`,
-    }),
-    generatedAssistant({
-      prompt: "Provide helpful information about the product",
-    }),
-    generatedUser({
-      prompt: `Ask to ship it to ${faker.location.streetAddress()}, ${faker.location.city()}`,
-    }),
-    generatedAssistant({
-      prompt: "Confirm the shipping address and provide next steps",
-    }),
-  ],
-  {
-    count: 15,
-    model: openai("gpt-5-mini"),
-    output: "data/faker-ecommerce.jsonl",
-    seed: 100,
-  }
-);
-
-// Example 3: Customer Support with Random Issues
-// Generate diverse support conversations
-await generateDataset(
-  () => {
-    const issueType = oneOf([
-      "account login",
-      "billing",
-      "technical issue",
-      "feature request",
-    ]);
-
-    return [
-      generatedUser({
-        prompt: `Report a ${issueType} problem. Your email is ${faker.internet.email()} and account ID is ${faker.string.alphanumeric(10)}.`,
-      }),
-      generatedAssistant({
-        prompt: "Acknowledge the issue and ask for more details",
-      }),
-      ...times(between(1, 3), [
-        generatedUser({
-          prompt: "Provide more details about the issue",
-        }),
-        generatedAssistant({
-          prompt: "Respond helpfully and work toward resolution",
-        }),
-      ]),
-    ];
-  },
-  {
-    count: 20,
-    model: openai("gpt-5-mini"),
-    output: "data/faker-support.jsonl",
-    seed: 200,
-  }
-);
-
-// Example 4: Appointment Scheduling
-// Generate realistic scheduling conversations with dates and times
-await generateDataset(
-  () => [
-    generatedUser({
-      prompt: `Request an appointment for ${faker.person.fullName()} on ${faker.date.future().toLocaleDateString()} at ${faker.date.future().toLocaleTimeString()}. Contact: ${faker.phone.number()}`,
-    }),
-    generatedAssistant({
-      prompt: "Confirm availability and suggest appointment times",
-    }),
-    generatedUser({
-      prompt: "Confirm or request alternative time",
-    }),
-    generatedAssistant({
-      prompt: "Finalize the appointment details",
-    }),
-  ],
-  {
-    count: 12,
-    model: openai("gpt-5-mini"),
-    output: "data/faker-appointments.jsonl",
-    seed: 300,
+    // Swap the trio above for data/faker-ecommerce.jsonl (count: 15, seed: 100),
+    // data/faker-support.jsonl (count: 20, seed: 200), or
+    // data/faker-appointments.jsonl (count: 12, seed: 300).
   }
 );
 
@@ -147,4 +79,3 @@ console.log(
   "💡 Run with the same seeds to get identical fake data across runs"
 );
 console.log("📚 Explore more faker methods at: https://fakerjs.dev/");
-

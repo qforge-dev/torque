@@ -41,9 +41,11 @@ await generateDataset(
       generatedAssistant({ prompt: "Respond to greeting" }), // AI generated, gets remaining weight
     ]),
     ...times(between(1, 3), [
-      generatedUser({ prompt: "Chat about weather. Optionally mentioning previous message" }),
-      generatedAssistant({ prompt: "Respond to user. Short and concise." })
-    ])
+      generatedUser({
+        prompt: "Chat about weather. Optionally mentioning previous message",
+      }),
+      generatedAssistant({ prompt: "Respond to user. Short and concise." }),
+    ]),
   ],
   {
     count: 2, // number of examples
@@ -263,7 +265,7 @@ Control randomness for reproducible datasets:
 ```typescript
 await generateDataset(schema, {
   count: 50,
-  model: openai("gpt-4"),
+  model: openai("gpt-5-mini"),
   output: "data/dataset.jsonl",
   seed: 12345, // Same seed = same output
 });
@@ -337,7 +339,7 @@ await generateDataset(
   ],
   {
     count: 50,
-    model: openai("gpt-4"),
+    model: openai("gpt-5-mini"),
     output: "data/async-tools.jsonl",
   }
 );
@@ -352,7 +354,7 @@ Guide the AI's generation style globally:
 ```typescript
 await generateDataset(schema, {
   count: 100,
-  model: openai("gpt-4"),
+  model: openai("gpt-5-mini"),
   output: "data/dataset.jsonl",
   generationContext: {
     global: {
@@ -411,7 +413,7 @@ await generateDataset(
   },
   {
     count: 300, // 100 examples per tool
-    model: openai("gpt-4"),
+    model: openai("gpt-5-mini"),
     output: "data/multi-tool.jsonl",
   }
 );
@@ -424,7 +426,12 @@ await generateDataset(
 Torque includes built-in [Faker.js](https://fakerjs.dev/) integration that automatically respects the seed system for reproducible fake data generation:
 
 ```typescript
-import { generateDataset, generatedUser, generatedAssistant, faker } from "@qforge/torque";
+import {
+  generateDataset,
+  generatedUser,
+  generatedAssistant,
+  faker,
+} from "@qforge/torque";
 
 await generateDataset(
   () => [
@@ -437,7 +444,7 @@ await generateDataset(
   ],
   {
     count: 100,
-    model: openai("gpt-4"),
+    model: openai("gpt-5-mini"),
     output: "data/personas.jsonl",
     seed: 42, // Same seed = same fake names and cities
   }
@@ -445,11 +452,13 @@ await generateDataset(
 ```
 
 **Faker automatically uses Torque's seed system**, so:
+
 - Same seed = identical fake data across runs
 - No manual seed configuration needed
 - Perfect for creating realistic user personas, product data, addresses, emails, etc.
 
 **Common use cases:**
+
 - User personas: `faker.person.fullName()`, `faker.person.jobTitle()`
 - Locations: `faker.location.city()`, `faker.location.country()`
 - E-commerce: `faker.commerce.productName()`, `faker.commerce.price()`
