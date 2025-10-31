@@ -35,10 +35,14 @@ await generateDataset(
   () => [
     generatedUser({ prompt: "Friendly greeting or introduction" }), // AI generated
     oneOf([
-      // pick one randomly
-      assistant({ content: "Hello!" }), // static
-      generatedAssistant({ prompt: "Respond to greeting" }), // AI generated
+      // pick one randomly (weights are optional)
+      { value: assistant({ content: "Hello!" }), weight: 0.3 }, // static
+      generatedAssistant({ prompt: "Respond to greeting" }), // AI generated, gets remaining weight
     ]),
+    ...times(between(1, 3), [
+      generatedUser({ prompt: "Chat about weather. Optionally mentioning previous message" }),
+      generatedAssistant({ prompt: "Respond to user. Short and concise." })
+    ])
   ],
   {
     count: 2, // number of examples
@@ -123,7 +127,8 @@ const formalGreeting = () => [
 ];
 
 const schema = () => [
-  oneOf([greeting(), formalGreeting()]),
+  // Weighted selection between schema branches
+  oneOf([{ value: greeting(), weight: 0.6 }, formalGreeting()]),
   // Continue with shared conversation flow
   generatedUser({ prompt: "Ask a question" }),
   generatedAssistant({ prompt: "Provide helpful answer" }),
@@ -140,10 +145,10 @@ Build dynamic, varied datasets with composition helpers:
 import { oneOf, times, between, optional } from "@qforge/torque";
 
 const schema = () => [
-  // Choose randomly from options
+  // Choose randomly from options (weights optional)
   oneOf([
     user({ content: "Hello" }),
-    user({ content: "Hi there" }),
+    { weight: 0.5, value: user({ content: "Hi there" }) },
     user({ content: "Hey" }),
   ]),
 
@@ -161,7 +166,10 @@ const schema = () => [
 ];
 ```
 
-> 💡 See full example: [`examples/composition-utilities.ts`](examples/composition-utilities.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/composition-utilities)
+`oneOf` accepts plain schema entries or `{ value, weight }` objects. Provide any subset of weights (summing to ≤ 1) and the remaining probability is spread evenly across unweighted entries.
+
+> 💡 See weighted example: [`examples/weighted-one-of.ts`](examples/weighted-one-of.ts)  
+> 💡 Full utilities demo: [`examples/composition-utilities.ts`](examples/composition-utilities.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/composition-utilities)
 
 ### Tool Definitions
 
