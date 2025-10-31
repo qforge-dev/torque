@@ -91,21 +91,7 @@ bun add @qforge/torque
 
 ### Message Schemas
 
-Build conversations by composing message schemas:
-
-```typescript
-import { user, assistant, system } from "@qforge/torque";
-
-const schema = () => [
-  system({ content: "You are a helpful assistant." }),
-  user({ content: "Hello!" }),
-  assistant({ content: "Hi! How can I help?" }),
-];
-```
-
-**Composing Schemas:**
-
-Since schemas return arrays, you can compose them together to build complex conversations from reusable parts:
+Build conversations by composing message schemas, you can compose them together to build complex conversations from reusable parts:
 
 ```typescript
 // Reusable greeting pattern
@@ -131,7 +117,11 @@ const formalGreeting = () => [
 
 const schema = () => [
   // Weighted selection between schema branches
-  oneOf([{ value: greeting(), weight: 0.6 }, formalGreeting()]),
+  oneOf([
+    { value: greeting(), weight: 0.6 },
+    formalGreeting(),
+    extendedSchema(),
+  ]),
   // Continue with shared conversation flow
   generatedUser({ prompt: "Ask a question" }),
   generatedAssistant({ prompt: "Provide helpful answer" }),
