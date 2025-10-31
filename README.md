@@ -1,8 +1,8 @@
 # Torque
 
-> Like React, but for datasets
+> Like React, but for synthetic datasets
 
-**Torque** is a declarative, typesafe DSL for building complex LLM training datasets. Compose conversations like components, generate realistic variations with AI, and scale to thousands of examples with concurrent execution.
+**Torque** is a declarative, fully typesafe DSL for quickly building complex LLM synthetic datasets. Compose conversations like components, generate realistic variations with any model efficiently.
 
 [![npm version](https://img.shields.io/npm/v/@qforge/torque.svg)](https://www.npmjs.com/package/@qforge/torque)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
@@ -12,17 +12,23 @@
 
 - **🎯 Declarative DSL** - Compose conversations like React components
 - **🔒 Fully Typesafe** - Zod schemas with complete type inference
-- **🔌 Provider Agnostic** - Works with any AI SDK provider (OpenAI, Anthropic, DeepSeek, etc.)
-- **⚡ Concurrent Generation** - Beautiful CLI with real-time progress tracking
-- **🤖 AI-Powered Content** - Generate realistic variations automatically
+- **🔌 Provider Agnostic** - Generate with any AI SDK provider (OpenAI, Anthropic, DeepSeek, vLLM, LLaMA.cpp etc.)
+- **🤖 AI-Powered Content** - Generate realistic varied datasets automatically without complicated scripts
+- **💰 Cache Optimized** - Reuses context across generations to reduce costs
+- **📉 Prompt Optimized** - Concise, optimized structures, prompts and generation workflow lets you use smaller, cheaper models
 - **♻️ Reusable Patterns** - Build libraries of conversation templates
-- **💰 Cache Optimized (WIP)** - Reuses context across generations to reduce costs
-- **📉 Cost Efficient** - Concise, optimized structures and generation workflow lets you use smaller, cheaper models
+- **⚡ Concurrent Generation** - Beautiful async CLI with real-time progress tracking while generating concurrently
 
 ## 🚀 Quick Example
 
 ```typescript
-import { generateDataset, generatedUser, assistant } from "@qforge/torque";
+import {
+  generateDataset,
+  generatedUser,
+  generatedAssistant,
+  assistant,
+  oneOf,
+} from "@qforge/torque";
 import { openai } from "@ai-sdk/openai";
 
 await generateDataset(
@@ -54,12 +60,12 @@ Outputs:
 
 ## 🤔 Why Torque?
 
-Building training datasets for LLMs is tedious:
+Building synthetic datasets for LLMs is tedious:
 
-- Sometimes you don't have real non-synthetic data
-- Manual conversation writing doesn't scale with conversation length - imagine writing 10k tokens per row datasets
-- Maintaining consistency across thousands of examples is error-prone
-- Tool calling patterns require intricate message sequences and are tough
+- Sometimes you don’t have enough real data
+- Manual conversation writing doesn’t scale as conversations get long
+- Maintaining quality and consistency across thousands of examples is extremely time consuming
+- Tool calling patterns require intricate message sequences and are error‑prone
 - Generating different conversation flows means rewriting everything or creating various hard to maintain scripts
 - Designing generators that are random yet reproducible is surprisingly complex
 - Getting AI to understand complex composition scenarios (nested variations, conditional flows) takes significant prompt engineering time
@@ -69,9 +75,9 @@ Building training datasets for LLMs is tedious:
 ## 📦 Installation
 
 ```bash
-bun add @qforge/torque
-# or
 npm install @qforge/torque
+# or
+bun add @qforge/torque
 ```
 
 ## 📚 Core Concepts
@@ -157,25 +163,6 @@ const schema = () => [
 
 > 💡 See full example: [`examples/composition-utilities.ts`](examples/composition-utilities.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/composition-utilities)
 
-### AI-Generated Messages
-
-Use prompts to generate realistic variations:
-
-```typescript
-import { generatedUser, generatedAssistant } from "@qforge/torque";
-
-const schema = () => [
-  generatedUser({
-    prompt: "User greeting, casual and friendly",
-  }),
-  generatedAssistant({
-    prompt: "Assistant responds warmly and offers help",
-  }),
-];
-```
-
-> 💡 See full example: [`examples/basic-conversation.ts`](examples/basic-conversation.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/basic-conversation)
-
 ### Tool Definitions
 
 Define tools with Zod schemas for complete type safety:
@@ -189,12 +176,12 @@ import {
 import { z } from "zod";
 
 // use standard tool schema using zod ensuring complete type safety
-const weatherTool = tool({ 
+const weatherTool = tool({
   name: "get_weather",
   description: "Get current weather for a location",
   parameters: z.object({
     location: z.string().describe("City name"),
-    units: z.enum(["celsius", "fahrenheit"]).optional(),
+    units: z.enum(["C", "F"]).optional(),
   }),
   output: z.object({
     temperature: z.number(),
@@ -215,19 +202,19 @@ const schema = () => [
 
 ### 🔐 TypeScript Support
 
-Torque is built with TypeScript and provides complete type safety. Both for user and AI generating the data. 
-Ensure that the arguments and tool results are always matching schema.
+Torque is built with TypeScript and provides complete type safety. It enforces types for both authored and AI‑generated content. Arguments and results must match your schema.
 
 ```typescript
 // Full type inference for tool parameters
 const weatherTool = tool({
-  name: "weather",
+  name: "get_weather",
+  description: "Get current weather for a location",
   parameters: z.object({
-    location: z.string(),
-    units: z.enum(["C", "F"]),
+    location: z.string().describe("City name"),
+    units: z.enum(["C", "F"]).optional(),
   }),
   output: z.object({
-    temp: z.number(),
+    temperature: z.number(),
     condition: z.string(),
   }),
 });
@@ -255,9 +242,9 @@ Torque executes in two phases:
 
 This enables:
 
+- AI awareness of what are the exact steps in the conversation before generating content - you can create schemas where LLM "fills the gaps"
 - Accurate progress tracking
 - Pre-validation of conversation flow
-- Efficient token counting
 
 ### Reproducible Generation with Seeds
 
@@ -313,7 +300,7 @@ await generateDataset(
     // Initial request
     generatedUser({ prompt: "Ask for information requiring web search" }),
 
-    // Tool call
+    // Tool call generated based on the user request
     generatedToolCall(searchTool, "search-1"),
 
     // Immediate acknowledgment
@@ -322,16 +309,18 @@ await generateDataset(
       prompt: "Acknowledge search started, assure user it's in progress",
     }),
 
-    // Filler conversation while waiting
+    // Filler conversation while waiting.
+    // While generating AI is aware how many messages are left.
     ...times(between(1, 3), [
       generatedUser({ prompt: "Casual conversation, unrelated to search" }),
       generatedAssistant({ prompt: "Respond naturally to casual topic" }),
     ]),
 
-    // Actual result arrives
+    // Actual result arrives with reused arguments
     generatedToolCall(searchTool, "search-1-FINAL", {
       reuseArgsFrom: "search-1",
     }),
+    // Generated actual result based on previously generated tool call
     generatedToolCallResult(searchTool, "search-1-FINAL"),
     generatedAssistant({ prompt: "Present search results to user" }),
   ],
@@ -450,7 +439,6 @@ Torque includes a beautiful CLI interface with:
 │ #4: [██████████░░░░░░░░░░] 50% tool-call (calc)    │
 ╰────────────────────────────────────────────────────╯
 ```
-
 
 ## 🤝 Contributing
 
