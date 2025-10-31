@@ -1,4 +1,4 @@
-import type { ModelMessage } from "ai";
+import type { LanguageModel, ModelMessage } from "ai";
 import type { z } from "zod";
 import type { Awaitable } from "./utils";
 import type { IAiAgent } from "./ai";
@@ -160,4 +160,13 @@ export interface IDatasetRow {
 export interface IConvertMessageSchemaToDatasetMessageAcc {
   messages: IDatasetMessage[];
   tools: IDatasetTool[];
+}
+
+export interface IGenerateDatasetArgs {
+  count: number;
+  seed?: number;
+  output?: string;
+  model: LanguageModel;
+  concurrency?: number;
+  generationContext?: GenerationContext;
 }

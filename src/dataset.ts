@@ -12,6 +12,7 @@ import { processBatchWithConcurrency, withSeed, countTokens } from "./utils";
 import { type LanguageModel } from "ai";
 import { createAiAgent, type IAiAgent } from "./ai";
 import { DatasetGenerationRenderer } from "./cli-renderer";
+import type { IGenerateDatasetArgs } from "./types";
 
 export async function generateDataset(
   conversationSchemaFactory: IMessageSchema,
@@ -22,14 +23,7 @@ export async function generateDataset(
     model,
     concurrency = 5,
     generationContext,
-  }: {
-    count: number;
-    seed?: number;
-    output?: string;
-    model: LanguageModel;
-    concurrency?: number;
-    generationContext?: GenerationContext;
-  }
+  }: IGenerateDatasetArgs
 ): Promise<IDatasetRow[]> {
   // Generate default output path if not provided
   const outputPath = output || generateDefaultOutputPath();
