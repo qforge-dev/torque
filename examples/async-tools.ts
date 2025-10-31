@@ -98,7 +98,7 @@ await generateDataset(
     generatedToolCall(searchTool, "search-1"),
 
     // Immediate acknowledgment (tool started but not complete)
-    generatedToolCallResult(searchTool, "search-1", "<tool_ack />"),
+    searchTool.toolCallResult("search-1", "<tool_ack />"),
 
     generatedAssistant({
       prompt: "Assure user the search is in progress and will take a moment",
@@ -171,7 +171,7 @@ await generateDataset(
     }),
 
     generatedToolCall(analysisTool, "analysis-1"),
-    generatedToolCallResult(analysisTool, "analysis-1", "<tool_ack />"),
+    analysisTool.toolCallResult("analysis-1", "<tool_ack />"),
 
     generatedAssistant({
       prompt: "Explain the analysis will take some time due to dataset size",

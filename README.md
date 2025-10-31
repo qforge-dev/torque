@@ -202,7 +202,8 @@ const schema = () => [
 
 ### 🔐 TypeScript Support
 
-Torque is built with TypeScript and provides complete type safety. It enforces types for both authored and AI‑generated content. Arguments and results must match your schema.
+Torque is built with TypeScript and provides complete type safety. Both for user and AI generating the data.
+Ensure that the arguments and tool results are always matching schema.
 
 ```typescript
 // Full type inference for tool parameters
@@ -304,7 +305,8 @@ await generateDataset(
     generatedToolCall(searchTool, "search-1"),
 
     // Immediate acknowledgment
-    generatedToolCallResult(searchTool, "search-1", "<tool_ack />"),
+    searchTool.toolCallResult("search-1", "<tool_ack />"),
+
     generatedAssistant({
       prompt: "Acknowledge search started, assure user it's in progress",
     }),
