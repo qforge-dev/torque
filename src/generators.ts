@@ -146,7 +146,7 @@ export function generateToolCallArgs<T extends z.ZodObject>(
   prompt?: string
 ): (context: IMessageSchemaContext) => Awaitable<z.infer<T>> {
   return async (context: IMessageSchemaContext) => {
-    const { ai, acc } = context;
+    const { ai, acc, generationContext } = context;
 
     const existingArgs = findExistingToolCallArgs<T>(acc.messages, id);
     if (existingArgs) {
@@ -173,6 +173,7 @@ export function generateToolCallArgs<T extends z.ZodObject>(
         ${prompt ?? ""}
         `.trim(),
       },
+      ...contextMessages,
       {
         role: "user",
         content: `
@@ -192,7 +193,7 @@ export function generateToolResult<T extends z.ZodType>(
   prompt?: string
 ): (context: IMessageSchemaContext) => Awaitable<z.infer<T>> {
   return async (context: IMessageSchemaContext): Promise<z.infer<T>> => {
-    const { ai, acc } = context;
+    const { ai, acc, generationContext } = context;
 
     const existingCallArgs = findExistingToolCallArgs(acc.messages, id);
 
@@ -221,6 +222,7 @@ export function generateToolResult<T extends z.ZodType>(
         ${prompt ?? ""}
         `.trim(),
       },
+      ...contextMessages,
       {
         role: "user",
         content: `
