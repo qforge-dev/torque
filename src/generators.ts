@@ -1,4 +1,5 @@
 import z from "zod";
+import type { ZodTypeAny } from "zod";
 import type {
   GenerationContext,
   GenerationMessageProvider,
@@ -13,6 +14,30 @@ interface GenerateMessageOptions {
   role: MessageRole;
   prompt: string;
   context: IMessageSchemaContext;
+}
+
+function resolveBaseSchema(schema: ZodTypeAny): ZodTypeAny {
+  if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable) {
+    const inner = (schema as any)._def.innerType as ZodTypeAny;
+    return resolveBaseSchema(inner);
+  }
+
+  if (schema instanceof z.ZodDefault) {
+    const inner = (schema as any)._def.innerType as ZodTypeAny;
+    return resolveBaseSchema(inner);
+  }
+
+  return schema;
+}
+
+function isEmptyObjectSchema(schema: ZodTypeAny): boolean {
+  const base = resolveBaseSchema(schema);
+
+  if (!(base instanceof z.ZodObject)) {
+    return false;
+  }
+
+  return Object.keys(base.shape).length === 0;
 }
 
 export async function generateMessageFromPrompt({
@@ -128,6 +153,10 @@ export function generateToolCallArgs<T extends z.ZodObject>(
       return existingArgs;
     }
 
+    if (isEmptyObjectSchema(schema)) {
+      return schema.parse({});
+    }
+
     const result = await ai.generateObject(schema, [
       {
         role: "system",
@@ -169,6 +198,10 @@ export function generateToolResult<T extends z.ZodType>(
 
     if (!existingCallArgs) {
       throw new Error(`Tool call arguments with id "${id}" not found`);
+    }
+
+    if (isEmptyObjectSchema(schema)) {
+      return schema.parse({}) as z.infer<T>;
     }
 
     const result = await ai.generateObject(schema, [
