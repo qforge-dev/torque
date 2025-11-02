@@ -8,12 +8,14 @@ export interface IGenerationState {
   totalSteps: number;
   currentStep: number;
   currentStepName: string;
-  status: "pending" | "in-progress" | "completed";
+  status: "pending" | "in-progress" | "completed" | "failed";
+  error?: string;
 }
 
 export interface IOverallProgress {
   completed: number;
   inProgress: number;
+  failed: number;
   total: number;
 }
 
@@ -22,6 +24,7 @@ export class DatasetGenerationRenderer {
   private overallProgress: IOverallProgress = {
     completed: 0,
     inProgress: 0,
+    failed: 0,
     total: 0,
   };
   private startTime: number = Date.now();
@@ -56,7 +59,7 @@ export class DatasetGenerationRenderer {
     id: number,
     updates: Partial<
       Omit<IGenerationState, "id"> & {
-        status?: "pending" | "in-progress" | "completed";
+        status?: "pending" | "in-progress" | "completed" | "failed";
       }
     >
   ) {
@@ -112,6 +115,25 @@ export class DatasetGenerationRenderer {
   }
 
   /**
+   * Mark a generation as failed
+   */
+  failGeneration(id: number, error?: string) {
+    this.updateGeneration(id, {
+      status: "failed",
+      error,
+    });
+  }
+
+  /**
+   * Get count of failed generations
+   */
+  getFailedCount(): number {
+    return Array.from(this.generations.values()).filter(
+      (gen) => gen.status === "failed"
+    ).length;
+  }
+
+  /**
    * Finish and show final summary
    */
   finish() {
@@ -134,6 +156,9 @@ export class DatasetGenerationRenderer {
     console.log(
       `📦 Generated ${this.overallProgress.completed} records successfully`
     );
+    if (this.overallProgress.failed > 0) {
+      console.log(`❌ Failed: ${this.overallProgress.failed} records`);
+    }
     console.log(`💾 Saved to: ${this.outputFile}`);
     console.log();
   }
@@ -177,8 +202,8 @@ export class DatasetGenerationRenderer {
     console.log();
 
     // Overall Progress
-    const { completed, inProgress, total } = this.overallProgress;
-    const remaining = total - completed - inProgress;
+    const { completed, inProgress, failed, total } = this.overallProgress;
+    const remaining = total - completed - inProgress - failed;
     const percentage =
       total > 0 ? ((completed / total) * 100).toFixed(1) : "0.0";
 
@@ -190,19 +215,34 @@ export class DatasetGenerationRenderer {
       )} ${completed}/${total} (${percentage}%)`
     );
     console.log(
-      `   ⏳ In Progress: ${inProgress} | 📋 Remaining: ${remaining}`
+      `   ⏳ In Progress: ${inProgress} | 📋 Remaining: ${remaining}${
+        failed > 0 ? ` | ❌ Failed: ${failed}` : ""
+      }`
     );
     console.log();
 
-    // Individual Generations (only show in-progress)
+    // Individual Generations (show in-progress and recently failed)
     const inProgressGenerations = Array.from(this.generations.values())
       .filter((gen) => gen.status === "in-progress")
+      .sort((a, b) => a.id - b.id);
+
+    const failedGenerations = Array.from(this.generations.values())
+      .filter((gen) => gen.status === "failed")
       .sort((a, b) => a.id - b.id);
 
     if (inProgressGenerations.length > 0) {
       console.log("🔄 Active Generations:");
 
       for (const gen of inProgressGenerations) {
+        this.renderGeneration(gen);
+      }
+    }
+
+    if (failedGenerations.length > 0) {
+      console.log();
+      console.log("❌ Failed Generations:");
+      // Show only the last 5 failed generations to avoid cluttering the display
+      for (const gen of failedGenerations.slice(-5)) {
         this.renderGeneration(gen);
       }
     }
@@ -222,7 +262,17 @@ export class DatasetGenerationRenderer {
         ? "✅"
         : gen.status === "in-progress"
         ? "⚙️"
+        : gen.status === "failed"
+        ? "❌"
         : "⏸️";
+
+    if (gen.status === "failed") {
+      const errorMsg = gen.error
+        ? gen.error.substring(0, 60) + (gen.error.length > 60 ? "..." : "")
+        : "Unknown error";
+      console.log(`   ${statusIcon} Gen #${gen.id + 1}: ${errorMsg}`);
+      return;
+    }
 
     if (gen.totalSteps > 0) {
       const stepPercentage =

@@ -49,6 +49,7 @@ export async function processBatchWithConcurrency<T, R>(
   processor: (item: T, index: number) => Promise<R>,
   options?: {
     onProgress?: (completed: number, inProgress: number, total: number) => void;
+    onError?: (error: Error, item: T, index: number) => void;
   }
 ): Promise<R[]> {
   const results: R[] = [];
@@ -66,6 +67,15 @@ export async function processBatchWithConcurrency<T, R>(
     const promise = processor(item, i)
       .then((result) => {
         results[i] = result;
+      })
+      .catch((error) => {
+        // Handle errors gracefully - log and continue
+        console.error(`\n❌ Generation #${i + 1} failed:`, error.message);
+        if (options?.onError) {
+          options.onError(error, item, i);
+        }
+        // Store undefined for failed generations
+        results[i] = undefined as any;
       })
       .finally(() => {
         executing.delete(promise);

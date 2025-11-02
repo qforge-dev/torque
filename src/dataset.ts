@@ -72,14 +72,23 @@ export async function generateDataset(
     },
     {
       onProgress: (completed, inProgress, total) => {
-        renderer.updateProgress({ completed, inProgress, total });
+        const failed = renderer.getFailedCount();
+        renderer.updateProgress({ completed, inProgress, failed, total });
+      },
+      onError: (error, _item, index) => {
+        renderer.failGeneration(index, error.message);
       },
     }
   );
 
   renderer.finish();
 
-  return dataset;
+  // Filter out failed generations (undefined values)
+  const successfulDataset = dataset.filter(
+    (row): row is IDatasetRow => row !== undefined
+  );
+
+  return successfulDataset;
 }
 
 function generateDefaultOutputPath(): string {
