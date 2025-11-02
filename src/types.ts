@@ -3,6 +3,16 @@ import type { z } from "zod";
 import type { Awaitable } from "./utils";
 import type { IAiAgent } from "./ai";
 
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | {
+      [key: string]: JsonValue;
+    };
+
 export type IMessageSchemaNullableItem =
   | IUserMessageSchema
   | IAssistantMessageSchema
@@ -154,6 +164,7 @@ export interface IDatasetRow {
       tools: number;
       total: number;
     };
+    metadata?: JsonValue;
   };
 }
 
@@ -169,4 +180,5 @@ export interface IGenerateDatasetArgs {
   model: LanguageModel;
   concurrency?: number;
   generationContext?: GenerationContext;
+  metadata?: JsonValue;
 }

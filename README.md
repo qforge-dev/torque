@@ -49,6 +49,7 @@ await generateDataset(
     count: 2, // number of examples
     model: openai("gpt-5-mini"), // any ai-sdk model
     seed: 42, // replayable RNG
+    metadata: { example: "quick-start" }, // optional per-row metadata
   }
 );
 ```

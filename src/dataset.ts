@@ -7,6 +7,7 @@ import type {
   IMessageSchema,
   IMessageSchemaStructure,
   GenerationContext,
+  JsonValue,
 } from "./types";
 import { processBatchWithConcurrency, withSeed, countTokens } from "./utils";
 import { type LanguageModel } from "ai";
@@ -23,6 +24,7 @@ export async function generateDataset(
     model,
     concurrency = 5,
     generationContext,
+    metadata,
   }: IGenerateDatasetArgs
 ): Promise<IDatasetRow[]> {
   // Generate default output path if not provided
@@ -56,7 +58,8 @@ export async function generateDataset(
         outputPath,
         renderer,
         i,
-        generationContext
+        generationContext,
+        metadata
       );
 
       // Save row immediately after generation
@@ -103,7 +106,8 @@ async function generateDatasetRow(
   output: string,
   renderer: DatasetGenerationRenderer,
   generationId: number,
-  generationContext?: GenerationContext
+  generationContext?: GenerationContext,
+  metadata?: JsonValue
 ): Promise<IDatasetRow> {
   const startTimestamp = new Date().toISOString();
 
@@ -150,6 +154,7 @@ async function generateDatasetRow(
         output: output,
         startTimestamp,
         tokenCount,
+        metadata,
       },
     };
   };
