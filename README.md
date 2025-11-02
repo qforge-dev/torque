@@ -1,7 +1,5 @@
 # Torque
 
-> Like React, but for synthetic datasets
-
 **Torque** is a declarative, fully typesafe DSL for quickly building complex LLM synthetic datasets. Compose conversations like components, generate realistic variations with any model efficiently.
 
 [![npm version](https://img.shields.io/npm/v/@qforge/torque.svg)](https://www.npmjs.com/package/@qforge/torque)
@@ -10,7 +8,7 @@
 
 ## ✨ Features
 
-- **🎯 Declarative DSL** - Compose conversations like React components
+- **🎯 Declarative DSL** - Compose conversations like components
 - **🔒 Fully Typesafe** - Zod schemas with complete type inference
 - **🔌 Provider Agnostic** - Generate with any AI SDK provider (OpenAI, Anthropic, DeepSeek, vLLM, LLaMA.cpp etc.)
 - **🤖 AI-Powered Content** - Generate realistic varied datasets automatically without complicated scripts
