@@ -1,25 +1,21 @@
 import { describe, expect, it } from "bun:test";
-import { oneOf } from "./schema";
+import { oneOf } from "./schema-rng";
 import { withSeed } from "./utils";
 
 describe("oneOf", () => {
   it("spreads remaining weight across unweighted options", async () => {
-    const options = [
-      { value: "A", weight: 0.3 },
-      "B",
-      "C",
-    ] as const;
+    const options = [{ value: "A", weight: 0.3 }, "B", "C"] as const;
 
     await withSeed(100, async () => {
-      expect(oneOf(options)).toBe("A");
+      expect(oneOf([...options])).toBe("A");
     });
 
     await withSeed(1, async () => {
-      expect(oneOf(options)).toBe("B");
+      expect(oneOf([...options])).toBe("B");
     });
 
     await withSeed(42, async () => {
-      expect(oneOf(options)).toBe("C");
+      expect(oneOf([...options])).toBe("C");
     });
   });
 
@@ -30,11 +26,11 @@ describe("oneOf", () => {
     ] as const;
 
     await withSeed(100, async () => {
-      expect(oneOf(options)).toBe("A");
+      expect(oneOf([...options])).toBe("A");
     });
 
     await withSeed(1, async () => {
-      expect(oneOf(options)).toBe("B");
+      expect(oneOf([...options])).toBe("B");
     });
   });
 
@@ -58,10 +54,7 @@ describe("oneOf", () => {
 
   it("rejects negative weights", () => {
     expect(() =>
-      oneOf([
-        { value: "left", weight: -0.1 },
-        { value: "right" },
-      ])
+      oneOf([{ value: "left", weight: -0.1 }, { value: "right" }])
     ).toThrow("oneOf weight values must be between 0 and 1");
   });
 });
