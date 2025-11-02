@@ -87,7 +87,7 @@ await generateDataset(
     ];
   },
   {
-    count: 30, // 10 examples per tool on average
+    count: 5, // 5 examples per tool on average
     model: openai("gpt-5-mini"),
     output: "data/multi-tool.jsonl",
     seed: 12345,

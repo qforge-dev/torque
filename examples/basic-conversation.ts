@@ -61,7 +61,7 @@ await generateDataset(
     */
   ],
   {
-    count: 50,
+    count: 5,
     model: openai("gpt-5-mini"),
     output: "data/generated-conversations.jsonl",
     seed: 42,

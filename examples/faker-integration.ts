@@ -64,7 +64,7 @@ await generateDataset(
     */
   ],
   {
-    count: 10,
+    count: 5,
     model: openai("gpt-5-mini"),
     output: "data/faker-personas.jsonl",
     seed: 42, // Same seed = same names/cities every time

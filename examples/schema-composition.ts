@@ -72,7 +72,7 @@ await generateDataset(
     */
   ],
   {
-    count: 15,
+    count: 5,
     model: openai("gpt-5-mini"),
     output: "data/composed-patterns.jsonl",
     seed: 200,

@@ -155,7 +155,7 @@ await generateDataset(
     */
   ],
   {
-    count: 30,
+    count: 5,
     model: openai("gpt-5-mini"),
     output: "data/async-search.jsonl",
     seed: 500,

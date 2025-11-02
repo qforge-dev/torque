@@ -38,7 +38,7 @@ await generateDataset(
     }),
   ],
   {
-    count: 20,
+    count: 5,
     model: openai("gpt-5-mini"),
     output: "data/custom-context-roles.jsonl",
     seed: 100,

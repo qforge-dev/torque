@@ -88,7 +88,7 @@ await generateDataset(
     */
   ],
   {
-    count: 25,
+    count: 5,
     model: openai("gpt-5-mini"),
     output: "data/calculator-usage.jsonl",
     seed: 100,
