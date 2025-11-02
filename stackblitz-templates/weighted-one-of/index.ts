@@ -89,7 +89,7 @@ const weightedFollowUp = () => [
 await generateDataset(
   () => [...weightedRecommendation(), ...weightedFollowUp()],
   {
-    count: 25,
+    count: 5,
     model: openai("gpt-5-mini"),
     output: "data/weighted-one-of.jsonl",
     seed: 512,

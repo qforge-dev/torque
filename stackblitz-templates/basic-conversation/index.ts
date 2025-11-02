@@ -7,12 +7,12 @@
 
 import {
   generateDataset,
-  user,
-  assistant,
   generatedUser,
   generatedAssistant,
 } from "@qforge/torque";
+// Optional static turns: import { user, assistant } from "@qforge/torque";
 import { createOpenAI } from "@ai-sdk/openai";
+
 const apiKey = process.env.OPENAI_API_KEY;
 
 if (!apiKey) {
@@ -29,29 +29,7 @@ const openai = createOpenAI({
   apiKey,
 });
 
-// Example 1: Static Conversations
-await generateDataset(
-  () => [
-    user({ content: "Hello! I need help with TypeScript." }),
-    assistant({
-      content:
-        "I'd be happy to help with TypeScript! What specific topic would you like to learn about?",
-    }),
-    user({ content: "How do I use generics?" }),
-    assistant({
-      content:
-        "Generics allow you to create reusable components that work with multiple types. Here's a simple example: `function identity<T>(arg: T): T { return arg; }`",
-    }),
-  ],
-  {
-    count: 10,
-    model: openai("gpt-5-mini"),
-    output: "data/static-conversations.jsonl",
-    seed: 42,
-  }
-);
-
-// Example 2: AI-Generated Conversations
+// Generated Q&A conversation.
 await generateDataset(
   () => [
     generatedUser({
@@ -68,9 +46,22 @@ await generateDataset(
     generatedAssistant({
       prompt: "Assistant provides additional details and examples",
     }),
+    /*
+    Fully scripted variant (requires enabling the optional imports):
+      user({ content: "Hello! I need help with TypeScript." }),
+      assistant({
+        content:
+          "I'd be happy to help with TypeScript! What specific topic would you like to learn about?",
+      }),
+      user({ content: "How do I use generics?" }),
+      assistant({
+        content:
+          "Generics allow you to create reusable components that work with multiple types. Here's a simple example: `function identity<T>(arg: T): T { return arg; }`",
+      }),
+    */
   ],
   {
-    count: 50,
+    count: 5,
     model: openai("gpt-5-mini"),
     output: "data/generated-conversations.jsonl",
     seed: 42,

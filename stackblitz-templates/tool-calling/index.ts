@@ -12,10 +12,11 @@ import {
   generatedAssistant,
   generatedToolCall,
   generatedToolCallResult,
-  oneOf,
 } from "@qforge/torque";
+// Add oneOf to the list above if you want to randomize tool selection.
 import { createOpenAI } from "@ai-sdk/openai";
 import { z } from "zod";
+
 const apiKey = process.env.OPENAI_API_KEY;
 
 if (!apiKey) {
@@ -48,16 +49,14 @@ const calculatorTool = tool({
   }),
 });
 
-// Define a weather tool
+/*
+Toggle-able weather tool:
 const weatherTool = tool({
   name: "get_weather",
   description: "Get current weather information for a location",
   parameters: z.object({
     location: z.string().describe("City name or coordinates"),
-    units: z
-      .enum(["celsius", "fahrenheit"])
-      .optional()
-      .describe("Temperature units"),
+    units: z.enum(["celsius", "fahrenheit"]).optional(),
   }),
   output: z.object({
     temperature: z.number(),
@@ -65,8 +64,8 @@ const weatherTool = tool({
     humidity: z.number().optional(),
   }),
 });
+*/
 
-// Example 1: Single tool usage
 await generateDataset(
   () => [
     calculatorTool.toolFunction(),
@@ -79,71 +78,19 @@ await generateDataset(
     generatedAssistant({
       prompt: "Present the calculation result to the user",
     }),
+    /*
+    Other options:
+      - Swap in the weather tool block above and replace the calculator calls accordingly.
+      - Chain both tools by appending an extra generatedUser/toolCall/toolCallResult trio.
+      - After enabling oneOf in the imports, pick the tool dynamically:
+          const toolForRun = oneOf([calculatorTool, weatherTool]);
+          toolForRun.toolFunction();
+    */
   ],
   {
-    count: 25,
+    count: 5,
     model: openai("gpt-5-mini"),
     output: "data/calculator-usage.jsonl",
     seed: 100,
-  }
-);
-
-// Example 2: Multiple tools with random selection
-await generateDataset(
-  () => {
-    // Randomly choose which tool to use for each example
-    const selectedTool = oneOf([calculatorTool, weatherTool]);
-
-    return [
-      selectedTool.toolFunction(),
-      generatedUser({
-        prompt:
-          "Ask a question that requires using the available tool (look at conversation structure to see which tool is available)",
-      }),
-      generatedAssistant({
-        prompt: "Acknowledge the request and indicate will use the tool",
-      }),
-      generatedToolCall(selectedTool as any, "t1"),
-      generatedToolCallResult(selectedTool as any, "t1"),
-      generatedAssistant({
-        prompt: "Present the tool result in a helpful, natural way",
-      }),
-    ];
-  },
-  {
-    count: 50,
-    model: openai("gpt-5-mini"),
-    output: "data/multi-tool-usage.jsonl",
-    seed: 200,
-    concurrency: 3,
-  }
-);
-
-// Example 3: Multiple tool calls in one conversation
-await generateDataset(
-  () => [
-    weatherTool.toolFunction(),
-    calculatorTool.toolFunction(),
-
-    // First tool call
-    generatedUser({ prompt: "Ask about weather in a specific city" }),
-    generatedToolCall(weatherTool, "weather-1"),
-    generatedToolCallResult(weatherTool, "weather-1"),
-    generatedAssistant({ prompt: "Present the weather information" }),
-
-    // Second tool call
-    generatedUser({
-      prompt:
-        "Ask for a temperature conversion calculation based on the weather",
-    }),
-    generatedToolCall(calculatorTool, "calc-1"),
-    generatedToolCallResult(calculatorTool, "calc-1"),
-    generatedAssistant({ prompt: "Present the conversion result" }),
-  ],
-  {
-    count: 20,
-    model: openai("gpt-5-mini"),
-    output: "data/multi-call-conversation.jsonl",
-    seed: 300,
   }
 );
