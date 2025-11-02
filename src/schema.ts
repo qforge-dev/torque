@@ -193,6 +193,8 @@ export interface IToolDefinition<
   T extends z.ZodObject = z.ZodObject,
   R extends z.ZodType = any
 > {
+  name: string;
+  description: string;
   toolFunction: () => (
     context: IMessageSchemaContext
   ) => IToolFunctionSchema<T>;
@@ -233,6 +235,8 @@ export function tool<T extends z.ZodObject, R extends z.ZodType = any>({
   output: R;
 }): IToolDefinition<T, R> {
   return {
+    name,
+    description,
     toolFunction: () => (_ctx) => ({
       name,
       description,
