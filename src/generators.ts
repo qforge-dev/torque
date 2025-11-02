@@ -157,6 +157,24 @@ export function generateToolCallArgs<T extends z.ZodObject>(
       return schema.parse({});
     }
 
+    const contextMessages: Array<ModelMessage> = [];
+
+    if (generationContext?.global) {
+      const globalMessages = await resolveMessageProvider(
+        generationContext.global,
+        context
+      );
+      contextMessages.push(...globalMessages);
+    }
+
+    if (generationContext?.toolCall) {
+      const toolCallMessages = await resolveMessageProvider(
+        generationContext.toolCall as GenerationMessageProvider,
+        context
+      );
+      contextMessages.push(...toolCallMessages);
+    }
+
     const result = await ai.generateObject(schema, [
       {
         role: "system",
@@ -203,6 +221,24 @@ export function generateToolResult<T extends z.ZodType>(
 
     if (isEmptyObjectSchema(schema)) {
       return schema.parse({}) as z.infer<T>;
+    }
+
+    const contextMessages: Array<ModelMessage> = [];
+
+    if (generationContext?.global) {
+      const globalMessages = await resolveMessageProvider(
+        generationContext.global,
+        context
+      );
+      contextMessages.push(...globalMessages);
+    }
+
+    if (generationContext?.toolResult) {
+      const toolResultMessages = await resolveMessageProvider(
+        generationContext.toolResult as GenerationMessageProvider,
+        context
+      );
+      contextMessages.push(...toolResultMessages);
     }
 
     const result = await ai.generateObject(schema, [
