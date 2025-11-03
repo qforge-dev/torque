@@ -129,6 +129,25 @@ const schema = () => [
 
 > 💡 See full example: [`examples/schema-composition.ts`](examples/schema-composition.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/schema-composition)
 
+### Row Metadata
+
+Use `metadata({ ... })` inside your schema to hoist custom fields into the generated row. The values merge with any metadata you pass directly to `generateDataset`, with schema-level keys taking precedence on conflicts.
+
+```typescript
+const schema = () => [
+  system({ content: "You are a helpful assistant." }),
+  oneOf([
+    () => [metadata({ variant: "static" }), assistant({ content: "Hello!" })],
+    () => [
+      metadata({ variant: "generated" }),
+      generatedAssistant({ prompt: "Greet the user warmly" }),
+    ],
+  ]),
+];
+```
+
+When the dataset is saved, you can read these values under `row.meta.metadata`.
+
 ### Composition Utilities
 
 Build dynamic, varied datasets with composition helpers:
