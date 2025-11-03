@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
+import { metadata } from "./schema";
 import { oneOf } from "./schema-rng";
+import type { IMessageSchemaContext } from "./types";
 import { withSeed } from "./utils";
 
 describe("oneOf", () => {
@@ -56,5 +58,28 @@ describe("oneOf", () => {
     expect(() =>
       oneOf([{ value: "left", weight: -0.1 }, { value: "right" }])
     ).toThrow("oneOf weight values must be between 0 and 1");
+  });
+});
+
+describe("metadata helper", () => {
+  it("merges provided values into accumulator metadata", () => {
+    const context = {
+      acc: {
+        messages: [],
+        tools: [],
+        metadata: { existing: "value" },
+      },
+      ai: {} as any,
+      structure: { messages: [], tools: [], metadata: {} },
+      phase: "generate" as const,
+    } as IMessageSchemaContext;
+
+    const result = metadata({ existing: "override", flag: true })(context);
+
+    expect(result).toBeNull();
+    expect(context.acc.metadata).toEqual({
+      existing: "override",
+      flag: true,
+    });
   });
 });

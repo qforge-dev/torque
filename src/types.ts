@@ -23,6 +23,7 @@ export type IMessageSchemaNullableItem =
   | null;
 
 export type IMessageSchemaStructure = {
+  metadata: Record<string, JsonValue>;
   messages: Array<
     | {
         role: "user" | "assistant" | "system";
@@ -171,6 +172,7 @@ export interface IDatasetRow {
 export interface IConvertMessageSchemaToDatasetMessageAcc {
   messages: IDatasetMessage[];
   tools: IDatasetTool[];
+  metadata: Record<string, JsonValue>;
 }
 
 export interface IGenerateDatasetArgs {

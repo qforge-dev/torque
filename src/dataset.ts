@@ -108,6 +108,31 @@ async function appendRowToFile(
   await fsp.appendFile(filePath, jsonLine, "utf-8");
 }
 
+function isMetadataObject(
+  value: JsonValue
+): value is Record<string, JsonValue> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function mergeRowMetadata(
+  base: JsonValue | undefined,
+  addition: Record<string, JsonValue>
+): JsonValue | undefined {
+  if (!addition || Object.keys(addition).length === 0) {
+    return base;
+  }
+
+  if (base === undefined) {
+    return { ...addition };
+  }
+
+  if (isMetadataObject(base)) {
+    return { ...base, ...addition };
+  }
+
+  return addition;
+}
+
 async function generateDatasetRow(
   conversationSchemaFactory: IMessageSchema,
   model: LanguageModel,
@@ -127,7 +152,7 @@ async function generateDatasetRow(
     const structure = await checkMessageSchemaStructure(
       conversationSchemaFactory,
       aiAgent,
-      { messages: [], tools: [] },
+      { messages: [], tools: [], metadata: {} },
       generationContext
     );
 
@@ -137,10 +162,14 @@ async function generateDatasetRow(
     // Start generation with total steps
     renderer.startGeneration(generationId, totalSteps);
 
-    const { messages, tools } = await convertMessageSchemaToDatasetMessage(
+    const {
+      messages,
+      tools,
+      metadata: schemaMetadata,
+    } = await convertMessageSchemaToDatasetMessage(
       conversationSchemaFactory,
       aiAgent,
-      { messages: [], tools: [] },
+      { messages: [], tools: [], metadata: {} },
       structure,
       generationContext,
       {
@@ -154,6 +183,7 @@ async function generateDatasetRow(
 
     // Count tokens
     const tokenCount = countTokens(messages, tools);
+    const rowMetadata = mergeRowMetadata(metadata, schemaMetadata);
 
     return {
       messages,
@@ -163,7 +193,7 @@ async function generateDatasetRow(
         output: output,
         startTimestamp,
         tokenCount,
-        metadata,
+        metadata: rowMetadata,
       },
     };
   };
@@ -177,11 +207,15 @@ async function generateDatasetRow(
 async function checkMessageSchemaStructure(
   messageFactory: IMessageSchema,
   aiAgent: IAiAgent,
-  structure: IMessageSchemaStructure = { messages: [], tools: [] },
+  structure: IMessageSchemaStructure = {
+    messages: [],
+    tools: [],
+    metadata: {},
+  },
   generationContext?: GenerationContext
 ): Promise<IMessageSchemaStructure> {
   const checkContext = {
-    acc: { messages: [], tools: [] },
+    acc: { messages: [], tools: [], metadata: {} },
     ai: aiAgent,
     structure,
     phase: "check" as const,
@@ -279,11 +313,23 @@ interface IGenerationProgress {
 async function convertMessageSchemaToDatasetMessage(
   messageFactory: IMessageSchema,
   aiAgent: IAiAgent,
-  acc: IConvertMessageSchemaToDatasetMessageAcc = { messages: [], tools: [] },
-  structure: IMessageSchemaStructure = { messages: [], tools: [] },
+  acc: IConvertMessageSchemaToDatasetMessageAcc = {
+    messages: [],
+    tools: [],
+    metadata: {},
+  },
+  structure: IMessageSchemaStructure = {
+    messages: [],
+    tools: [],
+    metadata: {},
+  },
   generationContext: GenerationContext | undefined,
   progress?: IGenerationProgress
 ): Promise<IConvertMessageSchemaToDatasetMessageAcc> {
+  if (!acc.metadata) {
+    acc.metadata = {};
+  }
+
   const context = {
     acc,
     ai: aiAgent,

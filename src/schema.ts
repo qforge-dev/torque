@@ -2,6 +2,7 @@ import z from "zod";
 import type {
   IAssistantMessageSchema,
   IMessageSchemaContext,
+  JsonValue,
   ISystemMessageSchema,
   IToolCallResultSchema,
   IToolCallSchema,
@@ -291,6 +292,19 @@ export function tool<T extends z.ZodObject, R extends z.ZodType = any>({
       };
     },
     output,
+  };
+}
+
+export function metadata(
+  values: Record<string, JsonValue>
+): (context: IMessageSchemaContext) => Awaitable<null> {
+  return (context) => {
+    context.acc.metadata = {
+      ...context.acc.metadata,
+      ...values,
+    };
+
+    return null;
   };
 }
 
