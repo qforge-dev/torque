@@ -1,10 +1,34 @@
 import { createHash } from "crypto";
 import { tool, type IToolDefinition } from "./schema";
 import { convertJsonSchemaToZod } from "zod-from-json-schema";
-import z from "zod";
+import z, { type ZodTypeAny } from "zod";
 import { AsyncLocalStorage } from "async_hooks";
 import { encoding_for_model } from "tiktoken";
 import type { IDatasetMessage, IDatasetTool } from "./types";
+
+function resolveBaseSchema(schema: ZodTypeAny): ZodTypeAny {
+  if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable) {
+    const inner = (schema as any)._def.innerType as ZodTypeAny;
+    return resolveBaseSchema(inner);
+  }
+
+  if (schema instanceof z.ZodDefault) {
+    const inner = (schema as any)._def.innerType as ZodTypeAny;
+    return resolveBaseSchema(inner);
+  }
+
+  return schema;
+}
+
+export function isEmptyObjectSchema(schema: ZodTypeAny): boolean {
+  const base = resolveBaseSchema(schema);
+
+  if (!(base instanceof z.ZodObject)) {
+    return false;
+  }
+
+  return Object.keys(base.shape).length === 0;
+}
 
 function rngFromSeed(seed: number): () => number {
   let state = createHash("sha256").update(String(seed)).digest();

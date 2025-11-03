@@ -5,7 +5,7 @@ import type {
   GenerationMessageProvider,
   IMessageSchemaContext,
 } from "./types";
-import type { Awaitable } from "./utils";
+import { isEmptyObjectSchema, type Awaitable } from "./utils";
 import type { ToolCallPart, ModelMessage } from "ai";
 
 type MessageRole = "user" | "assistant" | "system";
@@ -14,30 +14,6 @@ interface GenerateMessageOptions {
   role: MessageRole;
   prompt: string;
   context: IMessageSchemaContext;
-}
-
-function resolveBaseSchema(schema: ZodTypeAny): ZodTypeAny {
-  if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable) {
-    const inner = (schema as any)._def.innerType as ZodTypeAny;
-    return resolveBaseSchema(inner);
-  }
-
-  if (schema instanceof z.ZodDefault) {
-    const inner = (schema as any)._def.innerType as ZodTypeAny;
-    return resolveBaseSchema(inner);
-  }
-
-  return schema;
-}
-
-function isEmptyObjectSchema(schema: ZodTypeAny): boolean {
-  const base = resolveBaseSchema(schema);
-
-  if (!(base instanceof z.ZodObject)) {
-    return false;
-  }
-
-  return Object.keys(base.shape).length === 0;
 }
 
 export async function generateMessageFromPrompt({
