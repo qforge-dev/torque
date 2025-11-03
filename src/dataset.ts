@@ -43,6 +43,8 @@ export async function generateDataset(
     concurrency,
   });
 
+  const generationStartTimestamp = new Date().toISOString();
+
   const indices = Array.from({ length: count }, (_, i) => i);
 
   const dataset = await processBatchWithConcurrency(
@@ -58,6 +60,7 @@ export async function generateDataset(
         outputPath,
         renderer,
         i,
+        generationStartTimestamp,
         generationContext,
         metadata
       );
@@ -147,11 +150,10 @@ async function generateDatasetRow(
   output: string,
   renderer: DatasetGenerationRenderer,
   generationId: number,
+  generationStartTimestamp: string,
   generationContext?: GenerationContext,
   metadata?: JsonValue
 ): Promise<IDatasetRow> {
-  const startTimestamp = new Date().toISOString();
-
   const generateFn = async () => {
     const aiAgent = createAiAgent({ model });
     const baseMetadata = isMetadataObject(metadata) ? { ...metadata } : {};
@@ -195,12 +197,13 @@ async function generateDatasetRow(
 
     // Count tokens
     const tokenCount = countTokens(messages, tools);
-    
+
     // Add ID to metadata if seed is defined
-    const metadataWithId = seed !== undefined 
-      ? { ...schemaMetadata, id: generateIdFromSeed(seed) }
-      : schemaMetadata;
-    
+    const metadataWithId =
+      seed !== undefined
+        ? { ...schemaMetadata, id: generateIdFromSeed(seed) }
+        : schemaMetadata;
+
     const rowMetadata = mergeRowMetadata(metadata, metadataWithId);
 
     return {
@@ -209,7 +212,7 @@ async function generateDatasetRow(
       meta: {
         seed: seed ?? 0,
         output: output,
-        startTimestamp,
+        startTimestamp: generationStartTimestamp,
         tokenCount,
         metadata: rowMetadata,
       },
