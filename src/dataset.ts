@@ -8,25 +8,57 @@ import type {
   IMessageSchemaStructure,
   GenerationContext,
   JsonValue,
+  ISchemaWithCount,
 } from "./types";
 import { processBatchWithConcurrency, withSeed, countTokens } from "./utils";
 import { type LanguageModel } from "ai";
 import { createAiAgent, type IAiAgent } from "./ai";
 import { DatasetGenerationRenderer } from "./cli-renderer";
-import type { IGenerateDatasetArgs } from "./types";
+import type {
+  IGenerateDatasetArgs,
+  IGenerateDatasetArgsWithCount,
+  IGenerateDatasetArgsMultiSchema,
+} from "./types";
 
+// Overload 1: Array of schemas with individual counts (count not allowed in options)
+export async function generateDataset(
+  schemas: ISchemaWithCount[],
+  options: IGenerateDatasetArgsMultiSchema
+): Promise<IDatasetRow[]>;
+
+// Overload 2: Single schema with count in options (existing API)
 export async function generateDataset(
   conversationSchemaFactory: IMessageSchema,
-  {
-    count,
+  options: IGenerateDatasetArgsWithCount
+): Promise<IDatasetRow[]>;
+
+// Implementation
+export async function generateDataset(
+  schemaOrSchemas: IMessageSchema | ISchemaWithCount[],
+  options: IGenerateDatasetArgs | IGenerateDatasetArgsWithCount | IGenerateDatasetArgsMultiSchema
+): Promise<IDatasetRow[]> {
+  const {
     seed,
     output,
     model,
     concurrency = 5,
     generationContext,
     metadata,
-  }: IGenerateDatasetArgs
-): Promise<IDatasetRow[]> {
+  } = options;
+
+  // Normalize input to array of schema-count pairs
+  const schemaEntries: Array<{ schema: IMessageSchema; count: number }> =
+    Array.isArray(schemaOrSchemas)
+      ? schemaOrSchemas
+      : [
+          {
+            schema: schemaOrSchemas,
+            count: (options as IGenerateDatasetArgsWithCount).count,
+          },
+        ];
+
+  const totalCount = schemaEntries.reduce((sum, entry) => sum + entry.count, 0);
+
   // Generate default output path if not provided
   const outputPath = output || generateDefaultOutputPath();
 
@@ -37,7 +69,7 @@ export async function generateDataset(
   // Initialize the CLI renderer
   const renderer = new DatasetGenerationRenderer();
   renderer.start({
-    total: count,
+    total: totalCount,
     seed,
     outputFile: outputPath,
     concurrency,
@@ -45,21 +77,40 @@ export async function generateDataset(
 
   const generationStartTimestamp = new Date().toISOString();
 
-  const indices = Array.from({ length: count }, (_, i) => i);
+  // Create task list with schema assignments
+  type Task = {
+    index: number;
+    schema: IMessageSchema;
+    seedOffset: number;
+  };
+
+  const tasks: Task[] = [];
+  let currentIndex = 0;
+
+  for (const entry of schemaEntries) {
+    for (let i = 0; i < entry.count; i++) {
+      tasks.push({
+        index: currentIndex,
+        schema: entry.schema,
+        seedOffset: currentIndex,
+      });
+      currentIndex++;
+    }
+  }
 
   const dataset = await processBatchWithConcurrency(
-    indices,
+    tasks,
     concurrency,
-    async (i) => {
-      const rowSeed = seed !== undefined ? seed + i : undefined;
+    async (task) => {
+      const rowSeed = seed !== undefined ? seed + task.seedOffset : undefined;
 
       const row = await generateDatasetRow(
-        conversationSchemaFactory,
+        task.schema,
         model,
         rowSeed,
         outputPath,
         renderer,
-        i,
+        task.index,
         generationStartTimestamp,
         generationContext,
         metadata
@@ -69,7 +120,7 @@ export async function generateDataset(
       await appendRowToFile(outputPath, row);
 
       // Mark generation as completed
-      renderer.completeGeneration(i);
+      renderer.completeGeneration(task.index);
 
       return row;
     },
@@ -78,8 +129,8 @@ export async function generateDataset(
         const failed = renderer.getFailedCount();
         renderer.updateProgress({ completed, inProgress, failed, total });
       },
-      onError: (error, _item, index) => {
-        renderer.failGeneration(index, error.message);
+      onError: (error, task) => {
+        renderer.failGeneration(task.index, error.message);
       },
     }
   );

@@ -175,8 +175,12 @@ export interface IConvertMessageSchemaToDatasetMessageAcc {
   metadata: Record<string, JsonValue>;
 }
 
-export interface IGenerateDatasetArgs {
+export interface ISchemaWithCount {
+  schema: IMessageSchema;
   count: number;
+}
+
+interface IGenerateDatasetBaseArgs {
   seed?: number;
   output?: string;
   model: LanguageModel;
@@ -184,3 +188,14 @@ export interface IGenerateDatasetArgs {
   generationContext?: GenerationContext;
   metadata?: JsonValue;
 }
+
+// Options for single schema pattern (count is required)
+export interface IGenerateDatasetArgsWithCount
+  extends IGenerateDatasetBaseArgs {
+  count: number;
+}
+
+export interface IGenerateDatasetArgsMultiSchema
+  extends IGenerateDatasetBaseArgs {}
+
+export interface IGenerateDatasetArgs extends IGenerateDatasetBaseArgs {}
