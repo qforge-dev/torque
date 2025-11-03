@@ -196,6 +196,7 @@ export interface IToolDefinition<
 > {
   name: string;
   description: string;
+  parameters: T;
   toolFunction: () => (
     context: IMessageSchemaContext
   ) => IToolFunctionSchema<T>;
@@ -238,6 +239,7 @@ export function tool<T extends z.ZodObject, R extends z.ZodType = any>({
   return {
     name,
     description,
+    parameters,
     toolFunction: () => (_ctx) => ({
       name,
       description,
@@ -297,9 +299,7 @@ export function tool<T extends z.ZodObject, R extends z.ZodType = any>({
 
 type MetadataArgument =
   | Record<string, JsonValue>
-  | ((
-      meta: Record<string, JsonValue>
-    ) => Record<string, JsonValue> | void);
+  | ((meta: Record<string, JsonValue>) => Record<string, JsonValue> | void);
 
 function assertMetadataObject(
   value: Record<string, JsonValue> | void,
