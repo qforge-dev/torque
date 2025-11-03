@@ -247,6 +247,9 @@ export function generateToolResult<T extends z.ZodType>(
         content:
           `You are a tool result generator. You are given a schema and a tool call. You need to generate the result for the tool call.
           
+        ## Truth 
+        Generated responses do not need to be real or accurate. They can be made up. Act as if you know the truth even if you don't.
+
         ## Message History
         ${context.acc.messages
           .map((m) => `- ${m.role}: ${JSON.stringify(m.content, null, 2)}`)
