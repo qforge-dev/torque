@@ -114,6 +114,13 @@ function isMetadataObject(
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function generateIdFromSeed(seed: number): string {
+  // Create a deterministic ID from the seed
+  // Using a simple hash-like approach that's consistent across runs
+  const hash = Math.abs(seed * 2654435761) % 4294967296;
+  return `row_${seed}_${hash.toString(36)}`;
+}
+
 function mergeRowMetadata(
   base: JsonValue | undefined,
   addition: Record<string, JsonValue>
@@ -188,7 +195,13 @@ async function generateDatasetRow(
 
     // Count tokens
     const tokenCount = countTokens(messages, tools);
-    const rowMetadata = mergeRowMetadata(metadata, schemaMetadata);
+    
+    // Add ID to metadata if seed is defined
+    const metadataWithId = seed !== undefined 
+      ? { ...schemaMetadata, id: generateIdFromSeed(seed) }
+      : schemaMetadata;
+    
+    const rowMetadata = mergeRowMetadata(metadata, metadataWithId);
 
     return {
       messages,

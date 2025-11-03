@@ -157,6 +157,43 @@ const withCounter = () => [
 
 When the dataset is saved, you can read these values under `row.meta.metadata`.
 
+#### Automatic ID Generation
+
+When generating datasets with a seed, each row automatically receives a unique, deterministic `id` in its metadata. This ID is generated based on the seed value, making it easy to identify and track specific rows across multiple runs.
+
+```typescript
+await generateDataset(schema, {
+  count: 3,
+  seed: 100,
+  model: openai("gpt-4o-mini"),
+});
+
+// Output in row.meta.metadata:
+// Row 0: { id: "row_100_1l2dpno" }  // seed: 100
+// Row 1: { id: "row_101_txnff9" }   // seed: 101
+// Row 2: { id: "row_102_2sx56u" }   // seed: 102
+```
+
+The ID combines the seed value with a deterministic hash, ensuring:
+- **Reproducibility**: Same seed always generates the same ID
+- **Uniqueness**: Different seeds produce different IDs
+- **Traceability**: Easy to reference specific examples in logs or when combining datasets
+
+If custom metadata is provided, the ID is automatically merged with it:
+
+```typescript
+await generateDataset(schema, {
+  count: 2,
+  seed: 100,
+  model: openai("gpt-4o-mini"),
+  metadata: { projectName: "my-project" },
+});
+
+// Output: { id: "row_100_1l2dpno", projectName: "my-project" }
+```
+
+> **Note**: IDs are only generated when a seed is provided. Without a seed, no ID is added.
+
 ### Composition Utilities
 
 Build dynamic, varied datasets with composition helpers:
