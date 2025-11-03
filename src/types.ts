@@ -178,6 +178,7 @@ export interface IConvertMessageSchemaToDatasetMessageAcc {
 export interface ISchemaWithCount {
   schema: IMessageSchema;
   count: number;
+  seed?: number;
 }
 
 interface IGenerateDatasetBaseArgs {

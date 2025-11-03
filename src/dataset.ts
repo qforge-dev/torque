@@ -35,7 +35,10 @@ export async function generateDataset(
 // Implementation
 export async function generateDataset(
   schemaOrSchemas: IMessageSchema | ISchemaWithCount[],
-  options: IGenerateDatasetArgs | IGenerateDatasetArgsWithCount | IGenerateDatasetArgsMultiSchema
+  options:
+    | IGenerateDatasetArgs
+    | IGenerateDatasetArgsWithCount
+    | IGenerateDatasetArgsMultiSchema
 ): Promise<IDatasetRow[]> {
   const {
     seed,
@@ -46,16 +49,20 @@ export async function generateDataset(
     metadata,
   } = options;
 
-  // Normalize input to array of schema-count pairs
-  const schemaEntries: Array<{ schema: IMessageSchema; count: number }> =
-    Array.isArray(schemaOrSchemas)
-      ? schemaOrSchemas
-      : [
-          {
-            schema: schemaOrSchemas,
-            count: (options as IGenerateDatasetArgsWithCount).count,
-          },
-        ];
+  // Normalize input to array of schema-count-seed tuples
+  const schemaEntries: Array<{
+    schema: IMessageSchema;
+    count: number;
+    seed?: number;
+  }> = Array.isArray(schemaOrSchemas)
+    ? schemaOrSchemas
+    : [
+        {
+          schema: schemaOrSchemas,
+          count: (options as IGenerateDatasetArgsWithCount).count,
+          seed: seed,
+        },
+      ];
 
   const totalCount = schemaEntries.reduce((sum, entry) => sum + entry.count, 0);
 
@@ -81,6 +88,7 @@ export async function generateDataset(
   type Task = {
     index: number;
     schema: IMessageSchema;
+    seedBase: number | undefined;
     seedOffset: number;
   };
 
@@ -88,11 +96,15 @@ export async function generateDataset(
   let currentIndex = 0;
 
   for (const entry of schemaEntries) {
+    // Use schema-specific seed if provided, otherwise fall back to global seed
+    const schemaSeed = entry.seed !== undefined ? entry.seed : seed;
+
     for (let i = 0; i < entry.count; i++) {
       tasks.push({
         index: currentIndex,
         schema: entry.schema,
-        seedOffset: currentIndex,
+        seedBase: schemaSeed,
+        seedOffset: i, // Offset relative to this schema, not global
       });
       currentIndex++;
     }
@@ -102,7 +114,10 @@ export async function generateDataset(
     tasks,
     concurrency,
     async (task) => {
-      const rowSeed = seed !== undefined ? seed + task.seedOffset : undefined;
+      const rowSeed =
+        task.seedBase !== undefined
+          ? task.seedBase + task.seedOffset
+          : undefined;
 
       const row = await generateDatasetRow(
         task.schema,

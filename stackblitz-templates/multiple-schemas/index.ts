@@ -13,17 +13,17 @@ const technicalSupportSchema = () => [
   generatedAssistant({ prompt: "Provide technical troubleshooting steps" }),
 ];
 
-// Option A: Generate multiple schemas with individual counts
+// Option A: Generate multiple schemas with individual counts and seeds
 await generateDataset(
   [
-    { schema: customerSupportSchema, count: 15 },
-    { schema: technicalSupportSchema, count: 15 },
+    { schema: customerSupportSchema, count: 15, seed: 100 },
+    { schema: technicalSupportSchema, count: 15, seed: 200 },
   ],
   {
-    seed: 42,
     model: openai("gpt-5-mini"),
     output: "data/mixed-support.jsonl",
     // Note: count is not needed when using schema array
+    // Each schema can have its own seed for deterministic generation
   }
 );
 

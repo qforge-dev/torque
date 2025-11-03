@@ -126,4 +126,124 @@ describe("generateDataset API", () => {
     expect(tasks[3]).toEqual({ index: 3, schemaId: "schema2", seedOffset: 3 });
     expect(tasks[4]).toEqual({ index: 4, schemaId: "schema2", seedOffset: 4 });
   });
+
+  it("supports per-schema seeds", () => {
+    const mockSchema1: IMessageSchema = async () => null;
+    const mockSchema2: IMessageSchema = async () => null;
+
+    const schemas: ISchemaWithCount[] = [
+      { schema: mockSchema1, count: 3, seed: 100 },
+      { schema: mockSchema2, count: 2, seed: 200 },
+    ];
+
+    expect(schemas[0]!.seed).toBe(100);
+    expect(schemas[1]!.seed).toBe(200);
+  });
+
+  it("creates correct seed assignments for per-schema seeds", () => {
+    const schemaEntries = [
+      { id: "schema1", count: 3, seed: 100 },
+      { id: "schema2", count: 2, seed: 200 },
+    ];
+
+    type Task = {
+      index: number;
+      schemaId: string;
+      seedBase: number;
+      seedOffset: number;
+    };
+    const tasks: Task[] = [];
+    let currentIndex = 0;
+
+    for (const entry of schemaEntries) {
+      for (let i = 0; i < entry.count; i++) {
+        tasks.push({
+          index: currentIndex,
+          schemaId: entry.id,
+          seedBase: entry.seed,
+          seedOffset: i, // Offset relative to schema, not global
+        });
+        currentIndex++;
+      }
+    }
+
+    expect(tasks).toHaveLength(5);
+
+    // Verify schema1 tasks - each uses seed 100 + offset
+    expect(tasks[0]).toEqual({
+      index: 0,
+      schemaId: "schema1",
+      seedBase: 100,
+      seedOffset: 0,
+    });
+    expect(tasks[1]).toEqual({
+      index: 1,
+      schemaId: "schema1",
+      seedBase: 100,
+      seedOffset: 1,
+    });
+    expect(tasks[2]).toEqual({
+      index: 2,
+      schemaId: "schema1",
+      seedBase: 100,
+      seedOffset: 2,
+    });
+
+    // Verify schema2 tasks - each uses seed 200 + offset
+    expect(tasks[3]).toEqual({
+      index: 3,
+      schemaId: "schema2",
+      seedBase: 200,
+      seedOffset: 0,
+    });
+    expect(tasks[4]).toEqual({
+      index: 4,
+      schemaId: "schema2",
+      seedBase: 200,
+      seedOffset: 1,
+    });
+
+    // Verify actual seed values
+    const actualSeeds = tasks.map((t) => t.seedBase + t.seedOffset);
+    expect(actualSeeds).toEqual([100, 101, 102, 200, 201]);
+  });
+
+  it("falls back to global seed when schema seed is not provided", () => {
+    const globalSeed = 42;
+    const schemaEntries = [
+      { id: "schema1", count: 2, seed: 100 }, // Has its own seed
+      { id: "schema2", count: 2, seed: undefined }, // Should use global seed
+    ];
+
+    type Task = {
+      index: number;
+      schemaId: string;
+      seedBase: number | undefined;
+      seedOffset: number;
+    };
+    const tasks: Task[] = [];
+    let currentIndex = 0;
+
+    for (const entry of schemaEntries) {
+      const schemaSeed = entry.seed !== undefined ? entry.seed : globalSeed;
+
+      for (let i = 0; i < entry.count; i++) {
+        tasks.push({
+          index: currentIndex,
+          schemaId: entry.id,
+          seedBase: schemaSeed,
+          seedOffset: i,
+        });
+        currentIndex++;
+      }
+    }
+
+    // Schema1 uses its own seed
+    expect(tasks[0]!.seedBase).toBe(100);
+    expect(tasks[1]!.seedBase).toBe(100);
+
+    // Schema2 uses global seed
+    expect(tasks[2]!.seedBase).toBe(42);
+    expect(tasks[3]!.seedBase).toBe(42);
+  });
 });
