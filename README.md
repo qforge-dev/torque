@@ -131,7 +131,7 @@ const schema = () => [
 
 ### Row Metadata
 
-Use `metadata({ ... })` inside your schema to hoist custom fields into the generated row. The values merge with any metadata you pass directly to `generateDataset`, with schema-level keys taking precedence on conflicts.
+Use `metadata({ ... })` inside your schema to hoist custom fields into the generated row. The helper runs during the check phase, so you can safely compute metadata once and reuse it in generation. Passing a function receives the current metadata object (merged with any top-level metadata you provided) and may mutate it or return a new object for advanced scenarios like simple counters.
 
 ```typescript
 const schema = () => [
@@ -143,6 +143,15 @@ const schema = () => [
       generatedAssistant({ prompt: "Greet the user warmly" }),
     ],
   ]),
+];
+
+const withCounter = () => [
+  metadata((meta) => {
+    meta.count = meta.count ?? 0;
+    meta.count += 1;
+    count += 1;
+  }),
+  generatedUser({ prompt: "Ask a question" }),
 ];
 ```
 

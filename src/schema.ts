@@ -295,14 +295,54 @@ export function tool<T extends z.ZodObject, R extends z.ZodType = any>({
   };
 }
 
+type MetadataArgument =
+  | Record<string, JsonValue>
+  | ((
+      meta: Record<string, JsonValue>
+    ) => Record<string, JsonValue> | void);
+
+function assertMetadataObject(
+  value: Record<string, JsonValue> | void,
+  fallback: Record<string, JsonValue>
+): Record<string, JsonValue> {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    return value as Record<string, JsonValue>;
+  }
+
+  throw new Error(
+    "metadata updater must return an object or mutate the provided metadata object"
+  );
+}
+
 export function metadata(
-  values: Record<string, JsonValue>
+  values: MetadataArgument
 ): (context: IMessageSchemaContext) => Awaitable<null> {
   return (context) => {
-    context.acc.metadata = {
-      ...context.acc.metadata,
-      ...values,
-    };
+    if (context.phase !== "check") {
+      return null;
+    }
+
+    const current =
+      context.structure?.metadata && !Array.isArray(context.structure.metadata)
+        ? context.structure.metadata
+        : {};
+
+    let updated: Record<string, JsonValue>;
+
+    if (typeof values === "function") {
+      const draft = { ...current };
+      const result = values(draft);
+      updated = assertMetadataObject(result, draft);
+    } else {
+      updated = { ...current, ...values };
+    }
+
+    context.structure.metadata = updated;
+    context.acc.metadata = updated;
 
     return null;
   };

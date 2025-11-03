@@ -109,7 +109,7 @@ async function appendRowToFile(
 }
 
 function isMetadataObject(
-  value: JsonValue
+  value: JsonValue | undefined
 ): value is Record<string, JsonValue> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -147,12 +147,13 @@ async function generateDatasetRow(
 
   const generateFn = async () => {
     const aiAgent = createAiAgent({ model });
+    const baseMetadata = isMetadataObject(metadata) ? { ...metadata } : {};
 
     // First pass: Check structure
     const structure = await checkMessageSchemaStructure(
       conversationSchemaFactory,
       aiAgent,
-      { messages: [], tools: [], metadata: {} },
+      { messages: [], tools: [], metadata: baseMetadata },
       generationContext
     );
 
@@ -169,7 +170,11 @@ async function generateDatasetRow(
     } = await convertMessageSchemaToDatasetMessage(
       conversationSchemaFactory,
       aiAgent,
-      { messages: [], tools: [], metadata: {} },
+      {
+        messages: [],
+        tools: [],
+        metadata: { ...structure.metadata },
+      },
       structure,
       generationContext,
       {
@@ -214,8 +219,16 @@ async function checkMessageSchemaStructure(
   },
   generationContext?: GenerationContext
 ): Promise<IMessageSchemaStructure> {
+  if (!structure.metadata) {
+    structure.metadata = {};
+  }
+
   const checkContext = {
-    acc: { messages: [], tools: [], metadata: {} },
+    acc: {
+      messages: [],
+      tools: [],
+      metadata: { ...structure.metadata },
+    },
     ai: aiAgent,
     structure,
     phase: "check" as const,
@@ -326,8 +339,11 @@ async function convertMessageSchemaToDatasetMessage(
   generationContext: GenerationContext | undefined,
   progress?: IGenerationProgress
 ): Promise<IConvertMessageSchemaToDatasetMessageAcc> {
-  if (!acc.metadata) {
-    acc.metadata = {};
+  if (
+    Object.keys(acc.metadata).length === 0 &&
+    Object.keys(structure.metadata).length > 0
+  ) {
+    acc.metadata = { ...structure.metadata };
   }
 
   const context = {

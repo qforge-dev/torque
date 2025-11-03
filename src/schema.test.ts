@@ -62,24 +62,110 @@ describe("oneOf", () => {
 });
 
 describe("metadata helper", () => {
-  it("merges provided values into accumulator metadata", () => {
-    const context = {
+  it("applies object updates only during the check phase", () => {
+    const structure = {
+      messages: [],
+      tools: [],
+      metadata: { existing: "value" },
+    };
+
+    const checkContext = {
       acc: {
         messages: [],
         tools: [],
         metadata: { existing: "value" },
       },
       ai: {} as any,
-      structure: { messages: [], tools: [], metadata: {} },
+      structure,
+      phase: "check" as const,
+    } as IMessageSchemaContext;
+
+    const result = metadata({ flag: true })(checkContext);
+
+    expect(result).toBeNull();
+    expect(checkContext.structure.metadata).toEqual({
+      existing: "value",
+      flag: true,
+    });
+    expect(checkContext.acc.metadata).toEqual({
+      existing: "value",
+      flag: true,
+    });
+
+    const generateContext = {
+      ...checkContext,
+      phase: "generate" as const,
+      acc: {
+        ...checkContext.acc,
+        metadata: { ...checkContext.acc.metadata },
+      },
+    } as IMessageSchemaContext;
+
+    const before = { ...generateContext.acc.metadata };
+
+    const noop = metadata({ extra: "ignored" })(generateContext);
+
+    expect(noop).toBeNull();
+    expect(generateContext.acc.metadata).toEqual(before);
+    expect(generateContext.structure.metadata).toEqual({
+      existing: "value",
+      flag: true,
+    });
+  });
+
+  it("supports functional metadata updaters", () => {
+    let callCount = 0;
+    const structure = { messages: [], tools: [], metadata: {} };
+
+    const checkContext = {
+      acc: { messages: [], tools: [], metadata: {} },
+      ai: {} as any,
+      structure,
+      phase: "check" as const,
+    } as IMessageSchemaContext;
+
+    metadata((meta) => {
+      callCount += 1;
+      if (meta.count) {
+        meta.count = (meta.count as number) + 1;
+      } else {
+        meta.count = 1;
+      }
+    })(checkContext);
+
+    expect(checkContext.structure.metadata).toEqual({ count: 1 });
+
+    metadata((meta) => {
+      callCount += 1;
+      return { ...meta, variant: "test" };
+    })(checkContext);
+
+    expect(checkContext.structure.metadata).toEqual({
+      count: 1,
+      variant: "test",
+    });
+    expect(callCount).toBe(2);
+
+    const generateContext = {
+      acc: {
+        messages: [],
+        tools: [],
+        metadata: { ...checkContext.structure.metadata },
+      },
+      ai: {} as any,
+      structure,
       phase: "generate" as const,
     } as IMessageSchemaContext;
 
-    const result = metadata({ existing: "override", flag: true })(context);
+    metadata(() => {
+      callCount += 1;
+      return {};
+    })(generateContext);
 
-    expect(result).toBeNull();
-    expect(context.acc.metadata).toEqual({
-      existing: "override",
-      flag: true,
+    expect(callCount).toBe(2);
+    expect(generateContext.acc.metadata).toEqual({
+      count: 1,
+      variant: "test",
     });
   });
 });
