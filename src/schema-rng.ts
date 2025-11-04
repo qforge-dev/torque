@@ -10,7 +10,26 @@ export function between(min: number, max: number): number {
 }
 
 export function randomSample<T>(n: number, array: T[]): T[] {
-  return array.sort(() => random() - 0.5).slice(0, n);
+  if (n >= array.length) {
+    return [...array];
+  }
+
+  if (n <= 0) {
+    return [];
+  }
+
+  const copy = [...array];
+  const result: T[] = [];
+
+  // Partial Fisher-Yates shuffle - only shuffle the first n elements
+  for (let i = 0; i < n; i++) {
+    const randomIndex = i + Math.floor(random() * (copy.length - i));
+    result.push(copy[randomIndex]!);
+    // Swap to avoid picking the same element again
+    [copy[randomIndex], copy[i]] = [copy[i]!, copy[randomIndex]!];
+  }
+
+  return result;
 }
 export function oneOf<T>(options: Array<WeightedOneOfOption<T>>): T {
   if (options.length === 0) {

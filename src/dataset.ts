@@ -372,17 +372,21 @@ async function checkMessageSchemaStructure(
       message.toolCalls.length > 0
     ) {
       // In check phase, resolve tool calls to get their structure
-      const toolCallStructures = await Promise.all(
-        message.toolCalls.map(async (tc) => {
-          const toolCall = await tc(checkContext);
-          return {
-            toolCallId: toolCall.toolCallId,
-            toolName: toolCall.toolName,
-            arguments: toolCall.arguments,
-            generationId: toolCall.generationId,
-          };
-        })
-      );
+      const toolCallStructures: {
+        toolCallId: string;
+        toolName: string;
+        arguments: any;
+        generationId: string;
+      }[] = [];
+      for (const tc of message.toolCalls) {
+        const toolCall = await tc(checkContext);
+        toolCallStructures.push({
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          arguments: toolCall.arguments,
+          generationId: toolCall.generationId,
+        });
+      }
 
       structure.messages.push({
         role: "assistant",
@@ -493,6 +497,7 @@ async function convertMessageSchemaToDatasetMessage(
   };
 
   const message = await messageFactory(context);
+
   if (message === null) return acc;
   if (Array.isArray(message)) {
     for (const m of message) {
@@ -603,13 +608,13 @@ async function convertMessageSchemaToDatasetMessage(
       acc.messages.push(datasetMessage);
     } else if (message.role === "assistant") {
       if (message.toolCalls && message.toolCalls.length > 0) {
-        logStep("assistant message with tool calls");
-        // Resolve all tool calls
         const toolCallParts: IToolCallSchema<any>[] = [];
         for (const tc of message.toolCalls) {
           const toolCall = await tc(context);
           toolCallParts.push(toolCall);
         }
+
+        logStep("assistant message with tool calls");
 
         const textPart = { type: "text" as const, text: message.content };
         const datasetMessage = {
@@ -646,6 +651,7 @@ async function convertMessageSchemaToDatasetMessage(
     }
     return acc;
   }
+
   if (message.role === "assistant") {
     logStep(`tool-call (${message.toolName})`);
     const datasetMessage = {
