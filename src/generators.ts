@@ -29,6 +29,13 @@ interface GenerateMessageOptions {
   context: IMessageSchemaContext;
 }
 
+function omitGenerationIdReplacer(key: string, value: unknown) {
+  if (key === "generationId") {
+    return undefined;
+  }
+  return value;
+}
+
 export interface GeneratedMessageResult {
   text: string;
   generationId: string;
@@ -54,7 +61,7 @@ Your task is to generate a new ${role} message to continue the conversation base
 ${roleSpecificInstructions[role]}
 
 Previous messages:
-${JSON.stringify(acc.messages, null, 2)}
+${JSON.stringify(acc.messages, omitGenerationIdReplacer, 2)}
 
 Available tools:
 ${JSON.stringify(acc.tools, null, 2)}
@@ -65,7 +72,7 @@ ${JSON.stringify(
     ...m,
     currentlyGenerating: i === acc.messages.length,
   })),
-  null,
+  omitGenerationIdReplacer,
   2
 )}
 `;
