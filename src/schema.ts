@@ -53,10 +53,11 @@ export function generatedUser({
     const { phase } = context;
 
     if (phase === "check") {
+      const generatedLocalId = createGenerationId("user-check");
       return {
         role: "user",
         content: prompt,
-        generationId: createGenerationId("user-check"),
+        generationId: generatedLocalId,
       };
     }
 

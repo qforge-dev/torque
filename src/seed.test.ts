@@ -1,19 +1,32 @@
-import { describe, expect, it } from "bun:test";
-import { random, setSeed, getRandomCallCount, resetRandomCallCount, withSeed } from "./utils";
+import { describe, expect, it, jest } from "bun:test";
+import {
+  random,
+  setSeed,
+  getRandomCallCount,
+  resetRandomCallCount,
+  withSeed,
+} from "./utils";
 import { generateDataset } from "./dataset";
 import type { IMessageSchema } from "./types";
-import { user, assistant } from "./schema";
-import { oneOf } from "./schema-rng";
+import {
+  user,
+  assistant,
+  system,
+  times,
+  generatedUser,
+  generatedAssistant,
+} from "./schema";
+import { between, oneOf } from "./schema-rng";
 import { openai } from "@ai-sdk/openai";
 
 describe("seed tracking", () => {
   it("tracks random call count", async () => {
     await withSeed(42, async () => {
       expect(getRandomCallCount()).toBe(0);
-      
+
       random();
       expect(getRandomCallCount()).toBe(1);
-      
+
       random();
       random();
       expect(getRandomCallCount()).toBe(3);
@@ -25,10 +38,10 @@ describe("seed tracking", () => {
       random();
       random();
       expect(getRandomCallCount()).toBe(2);
-      
+
       resetRandomCallCount();
       expect(getRandomCallCount()).toBe(0);
-      
+
       random();
       expect(getRandomCallCount()).toBe(1);
     });
@@ -99,7 +112,7 @@ describe("seed skewing detection", () => {
       // Always consume 2 random values regardless of phase
       random();
       random();
-      
+
       return [user({ content: "Hello" })];
     };
 
@@ -136,3 +149,68 @@ describe("seed skewing detection", () => {
   });
 });
 
+describe("seed does not skew", () => {
+  it("does not skew when using oneOf", async () => {
+    const schema: IMessageSchema = async () => [
+      oneOf([user({ content: "Hello" })]),
+      oneOf([assistant({ content: "Hey" })]),
+      oneOf([user({ content: "Hello" })]),
+    ];
+
+    const result = await generateDataset(schema, {
+      model: openai("gpt-4"),
+      count: 1,
+      seed: 42,
+      output: "/tmp/seed-oneof-test.jsonl",
+    });
+    expect(result).toHaveLength(1);
+  });
+
+  it("does not skew when using times", async () => {
+    const schema: IMessageSchema = async () => [
+      ...times(2, [user({ content: "Hello" })]),
+      ...times(2, [user({ content: "Hello" })]),
+      ...times(2, [user({ content: "Hello" })]),
+    ];
+
+    const result = await generateDataset(schema, {
+      model: openai("gpt-4"),
+      count: 1,
+      seed: 42,
+      output: "/tmp/seed-times-test.jsonl",
+    });
+    expect(result).toHaveLength(1);
+  });
+
+  it("does not skew when using between", async () => {
+    const schema: IMessageSchema = async () => {
+      between(2, 4);
+      between(2, 4);
+      between(2, 4);
+      return [];
+    };
+
+    const result = await generateDataset(schema, {
+      model: openai("gpt-4"),
+      count: 1,
+      seed: 42,
+      output: "/tmp/seed-between-test.jsonl",
+    });
+    expect(result).toHaveLength(1);
+  });
+
+  it("does not skew when using generated messages", async () => {
+    const schema: IMessageSchema = async () => [
+      generatedUser({ prompt: "Hello" }),
+      generatedAssistant({ prompt: "Hey" }),
+    ];
+
+    const result = await generateDataset(schema, {
+      model: openai("gpt-4.1-nano"),
+      count: 1,
+      seed: 42,
+      output: "/tmp/seed-generatedUser-test.jsonl",
+    });
+    expect(result).toHaveLength(1);
+  });
+});

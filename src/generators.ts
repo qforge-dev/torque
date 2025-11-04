@@ -1,5 +1,4 @@
 import z from "zod";
-import type { ZodTypeAny } from "zod";
 import type {
   GenerationContext,
   GenerationMessageProvider,
@@ -41,6 +40,7 @@ export async function generateMessageFromPrompt({
   context,
 }: GenerateMessageOptions): Promise<GeneratedMessageResult> {
   const { structure, acc, ai, generationContext } = context;
+  const generatedLocalId = createGenerationId("msg");
 
   const roleSpecificInstructions = {
     user: `You are generating a user message - not an assistant or system message.`,
@@ -87,8 +87,6 @@ Important: Only generate the message content, do not include any meta-commentary
     ...contextMessages,
     { role: "user", content: userPrompt },
   ]);
-
-  const generatedLocalId = createGenerationId("msg");
 
   return {
     text: result.text,
@@ -147,6 +145,7 @@ export function generateToolCallArgs<T extends z.ZodObject>(
 ): (context: IMessageSchemaContext) => Awaitable<GeneratedToolCallArgs<T>> {
   return async (context: IMessageSchemaContext) => {
     const { ai, acc, generationContext } = context;
+    const generatedLocalId = createGenerationId("tool-call");
 
     const existing = findExistingToolCallArgs<T>(acc.messages, id);
     if (existing) {
@@ -156,7 +155,7 @@ export function generateToolCallArgs<T extends z.ZodObject>(
     if (isEmptyObjectSchema(schema)) {
       return {
         args: schema.parse({}) as z.infer<T>,
-        generationId: createGenerationId("tool-call"),
+        generationId: generatedLocalId,
       };
     }
 
@@ -206,7 +205,7 @@ export function generateToolCallArgs<T extends z.ZodObject>(
 
     return {
       args: result.object,
-      generationId: result.response?.id ?? createGenerationId("tool-call"),
+      generationId: result.response?.id ?? generatedLocalId,
     };
   };
 }
@@ -220,7 +219,7 @@ export function generateToolResult<T extends z.ZodType>(
     context: IMessageSchemaContext
   ): Promise<GeneratedToolResult<T>> => {
     const { ai, acc, generationContext } = context;
-
+    const generatedLocalId = createGenerationId("tool-result");
     const existingCallArgs = findExistingToolCallArgs(acc.messages, id);
 
     if (!existingCallArgs) {
@@ -232,7 +231,7 @@ export function generateToolResult<T extends z.ZodType>(
     if (isEmptyObjectSchema(schema)) {
       return {
         result: schema.parse({}) as z.infer<T>,
-        generationId: existingGenerationId ?? createGenerationId("tool-result"),
+        generationId: existingGenerationId ?? generatedLocalId,
       };
     }
 
@@ -285,10 +284,7 @@ export function generateToolResult<T extends z.ZodType>(
     ]);
 
     const generatedResult = result.object as any;
-    const generationId =
-      result.response?.id ??
-      existingGenerationId ??
-      createGenerationId("tool-result");
+    const generationId = result.response?.id ?? generatedLocalId;
 
     if ("result" in generatedResult) {
       return {
@@ -308,6 +304,7 @@ function findExistingToolCallArgs<T extends z.ZodObject>(
   toolCallId: string
 ): GeneratedToolCallArgs<T> | null {
   const normalizedToolCallId = toolCallId.replace("-FINAL", "");
+  const generatedLocalId = createGenerationId("tool-call");
 
   const assistantMessage = messages.find(
     (m) =>
@@ -336,9 +333,7 @@ function findExistingToolCallArgs<T extends z.ZodObject>(
       return {
         args: toolCall.input as z.infer<T>,
         generationId:
-          directGenerationId ??
-          messageGenerationId ??
-          createGenerationId("tool-call"),
+          directGenerationId ?? messageGenerationId ?? generatedLocalId,
       };
     }
   }
