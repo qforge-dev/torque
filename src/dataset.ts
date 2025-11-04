@@ -10,7 +10,13 @@ import type {
   JsonValue,
   ISchemaWithCount,
 } from "./types";
-import { processBatchWithConcurrency, withSeed, countTokens } from "./utils";
+import {
+  processBatchWithConcurrency,
+  withSeed,
+  countTokens,
+  getRandomCallCount,
+  resetRandomCallCount,
+} from "./utils";
 import { type LanguageModel } from "ai";
 import { createAiAgent, type IAiAgent } from "./ai";
 import { DatasetGenerationRenderer } from "./cli-renderer";
@@ -232,11 +238,17 @@ async function generateDatasetRow(
       generationContext
     );
 
+    // Save the random call count after check phase
+    const checkPhaseRandomCount = getRandomCallCount();
+
     const totalSteps = structure.messages.length;
     const progressTracker = { current: 0 };
 
     // Start generation with total steps
     renderer.startGeneration(generationId, totalSteps);
+
+    // Reset random call count before generate phase
+    resetRandomCallCount();
 
     const {
       messages,
@@ -260,6 +272,21 @@ async function generateDatasetRow(
         },
       }
     );
+
+    // Verify random call count matches after generate phase
+    const generatePhaseRandomCount = getRandomCallCount();
+    if (
+      checkPhaseRandomCount !== undefined &&
+      generatePhaseRandomCount !== undefined
+    ) {
+      if (checkPhaseRandomCount !== generatePhaseRandomCount) {
+        throw new Error(
+          `Seed skewing detected: check phase consumed ${checkPhaseRandomCount} random calls, ` +
+            `but generate phase consumed ${generatePhaseRandomCount} random calls. ` +
+            `This indicates the message schema is not deterministic between phases.`
+        );
+      }
+    }
 
     // Count tokens
     const tokenCount = countTokens(messages, tools);

@@ -5,7 +5,11 @@ import type {
   GenerationMessageProvider,
   IMessageSchemaContext,
 } from "./types";
-import { createGenerationId, isEmptyObjectSchema, type Awaitable } from "./utils";
+import {
+  createGenerationId,
+  isEmptyObjectSchema,
+  type Awaitable,
+} from "./utils";
 import type { ToolCallPart, ModelMessage } from "ai";
 
 type GeneratedToolCallArgs<T extends z.ZodObject> = {
@@ -84,9 +88,11 @@ Important: Only generate the message content, do not include any meta-commentary
     { role: "user", content: userPrompt },
   ]);
 
+  const generatedLocalId = createGenerationId("msg");
+
   return {
     text: result.text,
-    generationId: result.response?.id ?? createGenerationId("msg"),
+    generationId: result.response?.id ?? generatedLocalId,
   };
 }
 
@@ -280,7 +286,9 @@ export function generateToolResult<T extends z.ZodType>(
 
     const generatedResult = result.object as any;
     const generationId =
-      result.response?.id ?? existingGenerationId ?? createGenerationId("tool-result");
+      result.response?.id ??
+      existingGenerationId ??
+      createGenerationId("tool-result");
 
     if ("result" in generatedResult) {
       return {

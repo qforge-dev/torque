@@ -40,11 +40,17 @@ function rngFromSeed(seed: number): () => number {
   };
 }
 
-const asyncLocalStorage = new AsyncLocalStorage<() => number>();
+type RngContext = {
+  rng: () => number;
+  counter: { value: number };
+};
+
+const asyncLocalStorage = new AsyncLocalStorage<RngContext>();
 
 export function setSeed(seed: number): void {
   const rng = rngFromSeed(seed);
-  asyncLocalStorage.enterWith(rng);
+  const counter = { value: 0 };
+  asyncLocalStorage.enterWith({ rng, counter });
 }
 
 export function clearSeed(): void {
@@ -54,9 +60,25 @@ export function clearSeed(): void {
 export function random(): number {
   const rngContext = asyncLocalStorage.getStore();
   if (rngContext) {
-    return rngContext();
+    rngContext.counter.value++;
+    return rngContext.rng();
   }
   return Math.random();
+}
+
+export function getRandomCallCount(): number | undefined {
+  const rngContext = asyncLocalStorage.getStore();
+  if (rngContext) {
+    return rngContext.counter.value;
+  }
+  return undefined;
+}
+
+export function resetRandomCallCount(): void {
+  const rngContext = asyncLocalStorage.getStore();
+  if (rngContext) {
+    rngContext.counter.value = 0;
+  }
 }
 
 export function createGenerationId(prefix = "gen"): string {
@@ -70,7 +92,8 @@ export async function withSeed<T>(
   fn: () => Promise<T>
 ): Promise<T> {
   const rng = rngFromSeed(seed);
-  return asyncLocalStorage.run(rng, fn);
+  const counter = { value: 0 };
+  return asyncLocalStorage.run({ rng, counter }, fn);
 }
 
 export async function processBatchWithConcurrency<T, R>(
