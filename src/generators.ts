@@ -304,7 +304,6 @@ function findExistingToolCallArgs<T extends z.ZodObject>(
   toolCallId: string
 ): GeneratedToolCallArgs<T> | null {
   const normalizedToolCallId = toolCallId.replace("-FINAL", "");
-  const generatedLocalId = createGenerationId("tool-call");
 
   const assistantMessage = messages.find(
     (m) =>
@@ -332,8 +331,7 @@ function findExistingToolCallArgs<T extends z.ZodObject>(
 
       return {
         args: toolCall.input as z.infer<T>,
-        generationId:
-          directGenerationId ?? messageGenerationId ?? generatedLocalId,
+        generationId: directGenerationId ?? messageGenerationId ?? "DUPA",
       };
     }
   }
