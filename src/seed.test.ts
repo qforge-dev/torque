@@ -1,23 +1,16 @@
 import { describe, expect, it, jest } from "bun:test";
 import {
   random,
-  setSeed,
   getRandomCallCount,
   resetRandomCallCount,
   withSeed,
 } from "./utils";
 import { generateDataset } from "./dataset";
-import type { IMessageSchema } from "./types";
-import {
-  user,
-  assistant,
-  system,
-  times,
-  generatedUser,
-  generatedAssistant,
-} from "./schema";
+import type { IMessageSchema, IMessageSchemaContext } from "./types";
+import { user, assistant, times, generatedToolCall, tool } from "./schema";
 import { between, oneOf } from "./schema-rng";
 import { openai } from "@ai-sdk/openai";
+import z from "zod";
 
 describe("seed tracking", () => {
   it("tracks random call count", async () => {
@@ -102,6 +95,36 @@ describe("seed skewing detection", () => {
     });
 
     // The result should be empty because the generation failed
+    expect(result).toHaveLength(0);
+  });
+
+  it("detects seed skewing at specific message step", async () => {
+    // Create a schema where the second message has skewing
+    const skewedSchema: IMessageSchema = async (context) => {
+      return [
+        // First message - consistent
+        user({ content: "Hello" }),
+        // Second message - skewed
+        async (ctx: IMessageSchemaContext) => {
+          if (ctx.phase === "check") {
+            random(); // 1 call in check
+          } else {
+            random();
+            random(); // 2 calls in generate - SKEWED!
+          }
+          return assistant({ content: "Hi" })(ctx);
+        },
+      ];
+    };
+
+    // Should fail with empty result due to skewing at second message
+    const result = await generateDataset(skewedSchema, {
+      model: openai("gpt-4"),
+      count: 1,
+      seed: 42,
+      output: "/tmp/seed-skew-step-test.jsonl",
+    });
+
     expect(result).toHaveLength(0);
   });
 
@@ -199,17 +222,47 @@ describe("seed does not skew", () => {
     expect(result).toHaveLength(1);
   });
 
-  it("does not skew when using generated messages", async () => {
+  it("does not skew when using mixed static and oneOf", async () => {
     const schema: IMessageSchema = async () => [
-      generatedUser({ prompt: "Hello" }),
-      generatedAssistant({ prompt: "Hey" }),
+      user({ content: "Hello" }),
+      oneOf([assistant({ content: "Hey" }), assistant({ content: "Hi" })]),
+      user({ content: "How are you?" }),
     ];
 
     const result = await generateDataset(schema, {
+      model: openai("gpt-4"),
+      count: 1,
+      seed: 42,
+      output: "/tmp/seed-mixed-test.jsonl",
+    });
+    expect(result).toHaveLength(1);
+  });
+});
+
+describe("seed does not skew", () => {
+  it("does not skew when using generated messages", async () => {
+    const singleAsyncNoResultYetAsk = (): IMessageSchema => {
+      const tool1 = tool({
+        name: "tool1",
+        description: "tool1",
+        parameters: z.object({
+          name: z.string(),
+        }),
+        output: z.object({
+          result: z.string(),
+        }),
+      });
+
+      return () => {
+        return [generatedToolCall(tool1, "t1")];
+      };
+    };
+
+    const result = await generateDataset(singleAsyncNoResultYetAsk(), {
       model: openai("gpt-4.1-nano"),
       count: 1,
       seed: 42,
-      output: "/tmp/seed-generatedUser-test.jsonl",
+      output: "/tmp/seed-generated-tool-call-test.jsonl",
     });
     expect(result).toHaveLength(1);
   });

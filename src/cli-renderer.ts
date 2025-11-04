@@ -160,6 +160,20 @@ export class DatasetGenerationRenderer {
       console.log(`❌ Failed: ${this.overallProgress.failed} records`);
     }
     console.log(`💾 Saved to: ${this.outputFile}`);
+
+    const failedGenerations = Array.from(this.generations.values()).filter(
+      (gen) => gen.status === "failed"
+    );
+
+    if (failedGenerations.length > 0) {
+      console.log();
+      console.log("❌ Failed Generation Details:");
+      for (const gen of failedGenerations) {
+        const errorMsg = gen.error ? gen.error : "Unknown error";
+        console.log(`   • Row #${gen.id + 1}: ${errorMsg}`);
+      }
+    }
+
     console.log();
   }
 

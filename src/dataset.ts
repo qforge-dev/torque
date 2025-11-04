@@ -9,6 +9,7 @@ import type {
   GenerationContext,
   JsonValue,
   ISchemaWithCount,
+  IToolCallSchema,
 } from "./types";
 import {
   processBatchWithConcurrency,
@@ -234,12 +235,9 @@ async function generateDatasetRow(
     const structure = await checkMessageSchemaStructure(
       conversationSchemaFactory,
       aiAgent,
-      { messages: [], tools: [], metadata: baseMetadata },
+      { messages: [], tools: [], metadata: baseMetadata, seedCounts: [] },
       generationContext
     );
-
-    // Save the random call count after check phase
-    const checkPhaseRandomCount = getRandomCallCount();
 
     const totalSteps = structure.messages.length;
     const progressTracker = { current: 0 };
@@ -267,26 +265,15 @@ async function generateDatasetRow(
       {
         totalSteps,
         progressTracker,
+        seedCounts: structure.seedCounts,
+        currentStepIndex: { value: 0 },
+        seed,
+        generationId,
         onStepComplete: (current: number, total: number, stepType: string) => {
           renderer.updateStep(generationId, current, stepType);
         },
       }
     );
-
-    // Verify random call count matches after generate phase
-    const generatePhaseRandomCount = getRandomCallCount();
-    if (
-      checkPhaseRandomCount !== undefined &&
-      generatePhaseRandomCount !== undefined
-    ) {
-      if (checkPhaseRandomCount !== generatePhaseRandomCount) {
-        throw new Error(
-          `Seed skewing detected: check phase consumed ${checkPhaseRandomCount} random calls, ` +
-            `but generate phase consumed ${generatePhaseRandomCount} random calls. ` +
-            `This indicates the message schema is not deterministic between phases.`
-        );
-      }
-    }
 
     // Count tokens
     const tokenCount = countTokens(messages, tools);
@@ -318,18 +305,26 @@ async function generateDatasetRow(
 
   return await generateFn();
 }
+interface IStructureWithSeedCounts extends IMessageSchemaStructure {
+  seedCounts?: number[];
+}
+
 async function checkMessageSchemaStructure(
   messageFactory: IMessageSchema,
   aiAgent: IAiAgent,
-  structure: IMessageSchemaStructure = {
+  structure: IStructureWithSeedCounts = {
     messages: [],
     tools: [],
     metadata: {},
+    seedCounts: [],
   },
   generationContext?: GenerationContext
-): Promise<IMessageSchemaStructure> {
+): Promise<IStructureWithSeedCounts> {
   if (!structure.metadata) {
     structure.metadata = {};
+  }
+  if (!structure.seedCounts) {
+    structure.seedCounts = [];
   }
 
   const checkContext = {
@@ -395,6 +390,12 @@ async function checkMessageSchemaStructure(
         toolCalls: toolCallStructures,
         generationId: message.generationId,
       });
+
+      // Track seed count after this message
+      const currentCount = getRandomCallCount();
+      if (currentCount !== undefined) {
+        structure.seedCounts.push(currentCount);
+      }
     } else {
       structure.messages.push({
         role: message.role,
@@ -402,6 +403,12 @@ async function checkMessageSchemaStructure(
         content: message.content,
         generationId: message.generationId,
       });
+
+      // Track seed count after this message
+      const currentCount = getRandomCallCount();
+      if (currentCount !== undefined) {
+        structure.seedCounts.push(currentCount);
+      }
     }
     return structure;
   }
@@ -415,6 +422,12 @@ async function checkMessageSchemaStructure(
       arguments: message.arguments,
       generationId: message.generationId,
     });
+
+    // Track seed count after this message
+    const currentCount = getRandomCallCount();
+    if (currentCount !== undefined) {
+      structure.seedCounts.push(currentCount);
+    }
     return structure;
   } else if (message.role === "tool") {
     structure.messages.push({
@@ -425,6 +438,12 @@ async function checkMessageSchemaStructure(
       result: message.result,
       generationId: message.generationId,
     });
+
+    // Track seed count after this message
+    const currentCount = getRandomCallCount();
+    if (currentCount !== undefined) {
+      structure.seedCounts.push(currentCount);
+    }
     return structure;
   }
 
@@ -435,6 +454,10 @@ interface IGenerationProgress {
   totalSteps: number;
   progressTracker: { current: number };
   onStepComplete: (current: number, total: number, stepType: string) => void;
+  seedCounts?: number[];
+  currentStepIndex?: { value: number };
+  seed?: number;
+  generationId?: number;
 }
 
 async function convertMessageSchemaToDatasetMessage(
@@ -445,10 +468,11 @@ async function convertMessageSchemaToDatasetMessage(
     tools: [],
     metadata: {},
   },
-  structure: IMessageSchemaStructure = {
+  structure: IStructureWithSeedCounts = {
     messages: [],
     tools: [],
     metadata: {},
+    seedCounts: [],
   },
   generationContext: GenerationContext | undefined,
   progress?: IGenerationProgress
@@ -504,6 +528,67 @@ async function convertMessageSchemaToDatasetMessage(
         progress.totalSteps,
         stepType
       );
+
+      // Verify seed count matches check phase
+      if (progress.seedCounts && progress.currentStepIndex) {
+        const currentGenerateSeedCount = getRandomCallCount();
+        const expectedCheckSeedCount =
+          progress.seedCounts[progress.currentStepIndex.value];
+
+        if (
+          currentGenerateSeedCount !== undefined &&
+          expectedCheckSeedCount !== undefined
+        ) {
+          if (currentGenerateSeedCount !== expectedCheckSeedCount) {
+            const messageInfo =
+              structure.messages[progress.currentStepIndex.value];
+            const messageIndex = progress.currentStepIndex.value + 1;
+            const totalMessages = progress.totalSteps;
+
+            // Build detailed error message with context
+            let errorMsg = `Seed skewing detected in generation`;
+
+            if (progress.generationId !== undefined) {
+              errorMsg += ` #${progress.generationId}`;
+            }
+
+            if (progress.seed !== undefined) {
+              errorMsg += ` (seed: ${progress.seed})`;
+            }
+
+            errorMsg += `:\n\n`;
+            errorMsg += `  Location: Message ${messageIndex} of ${totalMessages} (${stepType})\n`;
+
+            if (messageInfo) {
+              if ("role" in messageInfo && "content" in messageInfo) {
+                const contentPreview =
+                  typeof messageInfo.content === "string"
+                    ? messageInfo.content.substring(0, 50)
+                    : "[complex content]";
+                errorMsg += `  Message: ${
+                  messageInfo.role
+                } - "${contentPreview}${
+                  messageInfo.content.length > 50 ? "..." : ""
+                }"\n`;
+              }
+            }
+
+            errorMsg += `\n`;
+            errorMsg += `  Random calls in check phase: ${expectedCheckSeedCount}\n`;
+            errorMsg += `  Random calls in generate phase: ${currentGenerateSeedCount}\n`;
+            errorMsg += `  Difference: ${
+              currentGenerateSeedCount - expectedCheckSeedCount
+            } extra calls\n`;
+            errorMsg += `\n`;
+            errorMsg += `This indicates the message schema is not deterministic between phases.\n`;
+            errorMsg += `Make sure your schema uses the same number of random() calls in both check and generate phases.`;
+
+            throw new Error(errorMsg);
+          }
+        }
+
+        progress.currentStepIndex.value++;
+      }
     }
   };
 
@@ -520,9 +605,11 @@ async function convertMessageSchemaToDatasetMessage(
       if (message.toolCalls && message.toolCalls.length > 0) {
         logStep("assistant message with tool calls");
         // Resolve all tool calls
-        const toolCallParts = await Promise.all(
-          message.toolCalls.map((tc) => tc(context))
-        );
+        const toolCallParts: IToolCallSchema<any>[] = [];
+        for (const tc of message.toolCalls) {
+          const toolCall = await tc(context);
+          toolCallParts.push(toolCall);
+        }
 
         const textPart = { type: "text" as const, text: message.content };
         const datasetMessage = {

@@ -47,12 +47,6 @@ type RngContext = {
 
 const asyncLocalStorage = new AsyncLocalStorage<RngContext>();
 
-export function setSeed(seed: number): void {
-  const rng = rngFromSeed(seed);
-  const counter = { value: 0 };
-  asyncLocalStorage.enterWith({ rng, counter });
-}
-
 export function clearSeed(): void {
   asyncLocalStorage.disable();
 }
