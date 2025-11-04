@@ -19,6 +19,7 @@ import type {
   IGenerateDatasetArgsWithCount,
   IGenerateDatasetArgsMultiSchema,
 } from "./types";
+import { TORQUE_PROVIDER_NAMESPACE } from "./constants";
 
 // Overload 1: Array of schemas with individual counts (count not allowed in options)
 export async function generateDataset(
@@ -207,6 +208,27 @@ function mergeRowMetadata(
   }
 
   return addition;
+}
+
+type ProviderOptions = Record<string, Record<string, JsonValue>>;
+
+function mergeProviderOptions(
+  existing: ProviderOptions | undefined,
+  generationId?: string
+): ProviderOptions | undefined {
+  if (!generationId) {
+    return existing;
+  }
+
+  const torqueOptions: Record<string, JsonValue> = {
+    ...(existing?.[TORQUE_PROVIDER_NAMESPACE] ?? {}),
+    generationId,
+  };
+
+  return {
+    ...existing,
+    [TORQUE_PROVIDER_NAMESPACE]: torqueOptions,
+  };
 }
 
 async function generateDatasetRow(
@@ -494,12 +516,22 @@ async function convertMessageSchemaToDatasetMessage(
           role: "assistant",
           content: [
             { type: "text", text: message.content },
-            ...toolCallParts.map((tc) => ({
-              type: "tool-call" as const,
-              toolCallId: tc.toolCallId,
-              toolName: tc.toolName,
-              input: tc.arguments,
-            })),
+            ...toolCallParts.map((tc) => {
+              const existingProviderOptions = (
+                tc as unknown as { providerOptions?: ProviderOptions }
+              ).providerOptions;
+              const providerOptions = mergeProviderOptions(
+                existingProviderOptions,
+                tc.generationId
+              );
+              return {
+                type: "tool-call" as const,
+                toolCallId: tc.toolCallId,
+                toolName: tc.toolName,
+                input: tc.arguments,
+                ...(providerOptions ? { providerOptions } : {}),
+              };
+            }),
           ],
         });
       } else {
@@ -520,6 +552,11 @@ async function convertMessageSchemaToDatasetMessage(
   }
   if (message.role === "assistant") {
     logStep(`tool-call (${message.toolName})`);
+    const providerOptions = mergeProviderOptions(
+      (message as unknown as { providerOptions?: ProviderOptions })
+        .providerOptions,
+      message.generationId
+    );
     acc.messages.push({
       role: "assistant",
       content: [
@@ -528,6 +565,7 @@ async function convertMessageSchemaToDatasetMessage(
           input: message.arguments,
           toolCallId: message.toolCallId,
           toolName: message.toolName,
+          ...(providerOptions ? { providerOptions } : {}),
         },
       ],
     });

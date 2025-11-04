@@ -122,19 +122,20 @@ export function generatedToolCall<T extends z.ZodObject>(
 ): (context: IMessageSchemaContext) => Awaitable<IToolCallSchema<z.infer<T>>> {
   return async (context) => {
     const { phase } = context;
+    const toolInstance = tool.toolFunction()(context);
 
     if (phase === "check") {
       return {
         role: "assistant",
         toolCallId: id,
-        toolName: tool.toolFunction()(context).name,
+        toolName: toolInstance.name,
         arguments: "{}" as z.infer<T>,
       };
     }
 
     const effectiveId = options?.reuseArgsFrom ?? id;
-    const parameters = tool.toolFunction()(context).parameters;
-    const args = await generateToolCallArgs(
+    const parameters = toolInstance.parameters;
+    const { args, generationId } = await generateToolCallArgs(
       parameters,
       effectiveId,
       options?.prompt
@@ -143,8 +144,9 @@ export function generatedToolCall<T extends z.ZodObject>(
     return {
       role: "assistant",
       toolCallId: id,
-      toolName: tool.toolFunction()(context).name,
+      toolName: toolInstance.name,
       arguments: args,
+      generationId,
     };
   };
 }
@@ -164,7 +166,8 @@ export function generatedToolCallResult<
   return async (context) => {
     const { phase } = context;
 
-    const toolName = tool.toolFunction()(context).name;
+    const toolInstance = tool.toolFunction()(context);
+    const toolName = toolInstance.name;
 
     if (phase === "check") {
       return {
@@ -175,7 +178,7 @@ export function generatedToolCallResult<
       };
     }
 
-    const generatedResult = await generateToolResult(
+    const { result: generatedResult, generationId } = await generateToolResult(
       tool.output,
       id,
       options?.prompt
@@ -186,6 +189,7 @@ export function generatedToolCallResult<
       toolCallId: id,
       toolName,
       result: generatedResult,
+      generationId,
     };
   };
 }

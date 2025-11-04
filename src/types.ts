@@ -37,6 +37,7 @@ export type IMessageSchemaStructure = {
           toolCallId: string;
           toolName: string;
           arguments: Record<string, any>;
+          generationId?: string;
         }>;
       }
     | {
@@ -45,6 +46,7 @@ export type IMessageSchemaStructure = {
         toolCallId: string;
         toolName: string;
         arguments: Record<string, any>;
+        generationId?: string;
       }
     | {
         role: "tool";
@@ -52,6 +54,7 @@ export type IMessageSchemaStructure = {
         toolCallId: string;
         toolName: string;
         result: any;
+        generationId?: string;
       }
   >;
   tools: Array<{
@@ -137,6 +140,7 @@ export interface IToolCallSchema<T extends Record<string, any> = {}> {
   toolCallId: string;
   toolName: string;
   arguments: T;
+  generationId?: string;
 }
 
 export interface IToolCallResultSchema<T = any> {
@@ -144,6 +148,7 @@ export interface IToolCallResultSchema<T = any> {
   toolCallId: string;
   toolName: string;
   result: T;
+  generationId?: string;
 }
 
 export type IDatasetMessage = ModelMessage;

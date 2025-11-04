@@ -7,6 +7,17 @@ import type {
 } from "./types";
 import { isEmptyObjectSchema, type Awaitable } from "./utils";
 import type { ToolCallPart, ModelMessage } from "ai";
+import { TORQUE_PROVIDER_NAMESPACE } from "./constants";
+
+type GeneratedToolCallArgs<T extends z.ZodObject> = {
+  args: z.infer<T>;
+  generationId?: string;
+};
+
+type GeneratedToolResult<T extends z.ZodType> = {
+  result: z.infer<T>;
+  generationId?: string;
+};
 
 type MessageRole = "user" | "assistant" | "system";
 
@@ -120,17 +131,20 @@ export function generateToolCallArgs<T extends z.ZodObject>(
   schema: T,
   id: string,
   prompt?: string
-): (context: IMessageSchemaContext) => Awaitable<z.infer<T>> {
+): (context: IMessageSchemaContext) => Awaitable<GeneratedToolCallArgs<T>> {
   return async (context: IMessageSchemaContext) => {
     const { ai, acc, generationContext } = context;
 
-    const existingArgs = findExistingToolCallArgs<T>(acc.messages, id);
-    if (existingArgs) {
-      return existingArgs;
+    const existing = findExistingToolCallArgs<T>(acc.messages, id);
+    if (existing) {
+      return existing;
     }
 
     if (isEmptyObjectSchema(schema)) {
-      return schema.parse({});
+      return {
+        args: schema.parse({}) as z.infer<T>,
+        generationId: undefined,
+      };
     }
 
     const contextMessages: Array<ModelMessage> = [];
@@ -177,7 +191,10 @@ export function generateToolCallArgs<T extends z.ZodObject>(
       },
     ]);
 
-    return result.object;
+    return {
+      args: result.object,
+      generationId: result.response?.id,
+    };
   };
 }
 
@@ -185,8 +202,10 @@ export function generateToolResult<T extends z.ZodType>(
   schema: T,
   id: string,
   prompt?: string
-): (context: IMessageSchemaContext) => Awaitable<z.infer<T>> {
-  return async (context: IMessageSchemaContext): Promise<z.infer<T>> => {
+): (context: IMessageSchemaContext) => Awaitable<GeneratedToolResult<T>> {
+  return async (
+    context: IMessageSchemaContext
+  ): Promise<GeneratedToolResult<T>> => {
     const { ai, acc, generationContext } = context;
 
     const existingCallArgs = findExistingToolCallArgs(acc.messages, id);
@@ -194,9 +213,14 @@ export function generateToolResult<T extends z.ZodType>(
     if (!existingCallArgs) {
       throw new Error(`Tool call arguments with id "${id}" not found`);
     }
+    const { args: resolvedArgs, generationId: existingGenerationId } =
+      existingCallArgs;
 
     if (isEmptyObjectSchema(schema)) {
-      return schema.parse({}) as z.infer<T>;
+      return {
+        result: schema.parse({}) as z.infer<T>,
+        generationId: existingGenerationId,
+      };
     }
 
     const contextMessages: Array<ModelMessage> = [];
@@ -232,7 +256,7 @@ export function generateToolResult<T extends z.ZodType>(
           .join("\n")}
           
         ## Tool Call
-        Arguments: ${JSON.stringify(existingCallArgs, null, 2)}
+        Arguments: ${JSON.stringify(resolvedArgs, null, 2)}
 
         ${prompt ?? ""}
         `.trim(),
@@ -247,17 +271,26 @@ export function generateToolResult<T extends z.ZodType>(
       },
     ]);
 
-    if ("result" in (result.object as any)) {
-      return (result.object as any).result;
+    const generatedResult = result.object as any;
+    const generationId = result.response?.id ?? existingGenerationId;
+
+    if ("result" in generatedResult) {
+      return {
+        result: generatedResult.result,
+        generationId,
+      };
     }
-    return result.object;
+    return {
+      result: generatedResult,
+      generationId,
+    };
   };
 }
 
 function findExistingToolCallArgs<T extends z.ZodObject>(
   messages: IMessageSchemaContext["acc"]["messages"],
   toolCallId: string
-): z.infer<T> | null {
+): GeneratedToolCallArgs<T> | null {
   const normalizedToolCallId = toolCallId.replace("-FINAL", "");
 
   const assistantMessage = messages.find(
@@ -275,7 +308,24 @@ function findExistingToolCallArgs<T extends z.ZodObject>(
     ) as ToolCallPart | undefined;
 
     if (toolCall) {
-      return toolCall.input as z.infer<T>;
+      const directGenerationId =
+        typeof (toolCall as any).generationId === "string"
+          ? (toolCall as any).generationId
+          : undefined;
+
+      const providerGenerationId =
+        typeof toolCall.providerOptions?.[TORQUE_PROVIDER_NAMESPACE]?.[
+          "generationId"
+        ] === "string"
+          ? (toolCall.providerOptions?.[TORQUE_PROVIDER_NAMESPACE]?.[
+              "generationId"
+            ] as string)
+          : undefined;
+
+      return {
+        args: toolCall.input as z.infer<T>,
+        generationId: directGenerationId ?? providerGenerationId,
+      };
     }
   }
 
