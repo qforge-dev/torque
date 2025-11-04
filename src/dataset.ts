@@ -572,6 +572,11 @@ async function convertMessageSchemaToDatasetMessage(
     return acc;
   } else if (message.role === "tool") {
     logStep(`tool-result (${message.toolName})`);
+    const providerOptions = mergeProviderOptions(
+      (message as unknown as { providerOptions?: ProviderOptions })
+        .providerOptions,
+      message.generationId
+    );
     acc.messages.push({
       role: "tool",
       content: [
@@ -580,6 +585,7 @@ async function convertMessageSchemaToDatasetMessage(
           toolCallId: message.toolCallId,
           toolName: message.toolName,
           output: message.result,
+          ...(providerOptions ? { providerOptions } : {}),
         },
       ],
     });
