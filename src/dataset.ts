@@ -297,6 +297,10 @@ async function generateDatasetRow(
       tools,
       meta: {
         seed: seed ?? 0,
+        model:
+          typeof model === "string"
+            ? model
+            : `${model.provider}/${model.modelId}`,
         output: output,
         startTimestamp: generationStartTimestamp,
         tokenCount,

@@ -139,7 +139,10 @@ export interface ISystemMessageSchema {
   generationId: string;
 }
 
-export interface IToolFunctionSchema<T extends z.ZodObject = any, R extends z.ZodType = any> {
+export interface IToolFunctionSchema<
+  T extends z.ZodObject = any,
+  R extends z.ZodType = any
+> {
   name: string;
   description: string;
   parameters: T;
@@ -176,7 +179,9 @@ export interface IDatasetRow {
   tools: IDatasetTool[];
   meta: {
     seed?: number;
+    model?: string;
     output?: string;
+    startTimestamp?: string;
     tokenCount?: {
       messages: number;
       tools: number;
