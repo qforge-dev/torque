@@ -252,27 +252,33 @@ async function generateDatasetRow(
       messages,
       tools,
       metadata: schemaMetadata,
-    } = await convertMessageSchemaToDatasetMessage(
-      conversationSchemaFactory,
-      aiAgent,
-      {
-        messages: [],
-        tools: [],
-        metadata: { ...structure.metadata },
-      },
-      structure,
-      generationContext,
-      {
-        totalSteps,
-        progressTracker,
-        seedCounts: structure.seedCounts,
-        currentStepIndex: { value: 0 },
-        seed,
-        generationId,
-        onStepComplete: (current: number, total: number, stepType: string) => {
-          renderer.updateStep(generationId, current, stepType);
+    } = await withSeed(seed!, () =>
+      convertMessageSchemaToDatasetMessage(
+        conversationSchemaFactory,
+        aiAgent,
+        {
+          messages: [],
+          tools: [],
+          metadata: { ...structure.metadata },
         },
-      }
+        structure,
+        generationContext,
+        {
+          totalSteps,
+          progressTracker,
+          seedCounts: structure.seedCounts,
+          currentStepIndex: { value: 0 },
+          seed,
+          generationId,
+          onStepComplete: (
+            current: number,
+            total: number,
+            stepType: string
+          ) => {
+            renderer.updateStep(generationId, current, stepType);
+          },
+        }
+      )
     );
 
     // Count tokens
