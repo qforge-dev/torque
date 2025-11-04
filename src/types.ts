@@ -29,6 +29,7 @@ export type IMessageSchemaStructure = {
         role: "user" | "assistant" | "system";
         type: "text";
         content: string;
+        generationId: string;
       }
     | {
         role: "assistant";
@@ -37,8 +38,9 @@ export type IMessageSchemaStructure = {
           toolCallId: string;
           toolName: string;
           arguments: Record<string, any>;
-          generationId?: string;
+          generationId: string;
         }>;
+        generationId: string;
       }
     | {
         role: "assistant";
@@ -46,7 +48,7 @@ export type IMessageSchemaStructure = {
         toolCallId: string;
         toolName: string;
         arguments: Record<string, any>;
-        generationId?: string;
+        generationId: string;
       }
     | {
         role: "tool";
@@ -54,7 +56,7 @@ export type IMessageSchemaStructure = {
         toolCallId: string;
         toolName: string;
         result: any;
-        generationId?: string;
+        generationId: string;
       }
   >;
   tools: Array<{
@@ -114,6 +116,7 @@ export type IMessageSchema = (
 export interface IUserMessageSchema {
   role: "user";
   content: string;
+  generationId: string;
 }
 
 export interface IAssistantMessageSchema {
@@ -122,11 +125,13 @@ export interface IAssistantMessageSchema {
   toolCalls?: Array<
     (context: IMessageSchemaContext) => Awaitable<IToolCallSchema>
   >;
+  generationId: string;
 }
 
 export interface ISystemMessageSchema {
   role: "system";
   content: string;
+  generationId: string;
 }
 
 export interface IToolFunctionSchema<T extends z.ZodObject = any> {
@@ -140,7 +145,7 @@ export interface IToolCallSchema<T extends Record<string, any> = {}> {
   toolCallId: string;
   toolName: string;
   arguments: T;
-  generationId?: string;
+  generationId: string;
 }
 
 export interface IToolCallResultSchema<T = any> {
@@ -148,10 +153,10 @@ export interface IToolCallResultSchema<T = any> {
   toolCallId: string;
   toolName: string;
   result: T;
-  generationId?: string;
+  generationId: string;
 }
 
-export type IDatasetMessage = ModelMessage;
+export type IDatasetMessage = ModelMessage & { generationId: string };
 
 export interface IDatasetTool {
   name: string;

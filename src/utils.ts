@@ -59,6 +59,12 @@ export function random(): number {
   return Math.random();
 }
 
+export function createGenerationId(prefix = "gen"): string {
+  const randA = Math.floor(random() * Number.MAX_SAFE_INTEGER);
+  const randB = Math.floor(random() * Number.MAX_SAFE_INTEGER);
+  return `${prefix}_${randA.toString(36)}${randB.toString(36)}`;
+}
+
 export async function withSeed<T>(
   seed: number,
   fn: () => Promise<T>

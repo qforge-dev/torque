@@ -19,7 +19,6 @@ import type {
   IGenerateDatasetArgsWithCount,
   IGenerateDatasetArgsMultiSchema,
 } from "./types";
-import { TORQUE_PROVIDER_NAMESPACE } from "./constants";
 
 // Overload 1: Array of schemas with individual counts (count not allowed in options)
 export async function generateDataset(
@@ -210,27 +209,6 @@ function mergeRowMetadata(
   return addition;
 }
 
-type ProviderOptions = Record<string, Record<string, JsonValue>>;
-
-function mergeProviderOptions(
-  existing: ProviderOptions | undefined,
-  generationId?: string
-): ProviderOptions | undefined {
-  if (!generationId) {
-    return existing;
-  }
-
-  const torqueOptions: Record<string, JsonValue> = {
-    ...(existing?.[TORQUE_PROVIDER_NAMESPACE] ?? {}),
-    generationId,
-  };
-
-  return {
-    ...existing,
-    [TORQUE_PROVIDER_NAMESPACE]: torqueOptions,
-  };
-}
-
 async function generateDatasetRow(
   conversationSchemaFactory: IMessageSchema,
   model: LanguageModel,
@@ -379,6 +357,7 @@ async function checkMessageSchemaStructure(
             toolCallId: toolCall.toolCallId,
             toolName: toolCall.toolName,
             arguments: toolCall.arguments,
+            generationId: toolCall.generationId,
           };
         })
       );
@@ -387,12 +366,14 @@ async function checkMessageSchemaStructure(
         role: "assistant",
         content: message.content,
         toolCalls: toolCallStructures,
+        generationId: message.generationId,
       });
     } else {
       structure.messages.push({
         role: message.role,
         type: "text",
         content: message.content,
+        generationId: message.generationId,
       });
     }
     return structure;
@@ -405,6 +386,7 @@ async function checkMessageSchemaStructure(
       toolCallId: message.toolCallId,
       toolName: message.toolName,
       arguments: message.arguments,
+      generationId: message.generationId,
     });
     return structure;
   } else if (message.role === "tool") {
@@ -414,6 +396,7 @@ async function checkMessageSchemaStructure(
       toolCallId: message.toolCallId,
       toolName: message.toolName,
       result: message.result,
+      generationId: message.generationId,
     });
     return structure;
   }
@@ -500,10 +483,12 @@ async function convertMessageSchemaToDatasetMessage(
   if ("content" in message) {
     if (message.role === "user") {
       logStep("user message");
-      acc.messages.push({
-        role: "user",
-        content: [{ type: "text", text: message.content }],
-      });
+      const datasetMessage = {
+        generationId: message.generationId,
+        role: "user" as const,
+        content: [{ type: "text" as const, text: message.content }],
+      };
+      acc.messages.push(datasetMessage);
     } else if (message.role === "assistant") {
       if (message.toolCalls && message.toolCalls.length > 0) {
         logStep("assistant message with tool calls");
@@ -512,83 +497,72 @@ async function convertMessageSchemaToDatasetMessage(
           message.toolCalls.map((tc) => tc(context))
         );
 
-        acc.messages.push({
-          role: "assistant",
+        const textPart = { type: "text" as const, text: message.content };
+        const datasetMessage = {
+          generationId: message.generationId,
+          role: "assistant" as const,
           content: [
-            { type: "text", text: message.content },
-            ...toolCallParts.map((tc) => {
-              const existingProviderOptions = (
-                tc as unknown as { providerOptions?: ProviderOptions }
-              ).providerOptions;
-              const providerOptions = mergeProviderOptions(
-                existingProviderOptions,
-                tc.generationId
-              );
-              return {
-                type: "tool-call" as const,
-                toolCallId: tc.toolCallId,
-                toolName: tc.toolName,
-                input: tc.arguments,
-                ...(providerOptions ? { providerOptions } : {}),
-              };
-            }),
+            textPart,
+            ...toolCallParts.map((tc) => ({
+              type: "tool-call" as const,
+              toolCallId: tc.toolCallId,
+              toolName: tc.toolName,
+              input: tc.arguments,
+            })),
           ],
-        });
+        };
+        acc.messages.push(datasetMessage);
       } else {
         logStep("assistant message");
-        acc.messages.push({
-          role: "assistant",
-          content: [{ type: "text", text: message.content }],
-        });
+        const datasetMessage = {
+          generationId: message.generationId,
+          role: "assistant" as const,
+          content: message.content,
+        };
+        acc.messages.push(datasetMessage);
       }
     } else if (message.role === "system") {
       logStep("system message");
-      acc.messages.push({
-        role: "system",
+      const datasetMessage = {
+        generationId: message.generationId,
+        role: "system" as const,
         content: message.content,
-      });
+      };
+      acc.messages.push(datasetMessage);
     }
     return acc;
   }
   if (message.role === "assistant") {
     logStep(`tool-call (${message.toolName})`);
-    const providerOptions = mergeProviderOptions(
-      (message as unknown as { providerOptions?: ProviderOptions })
-        .providerOptions,
-      message.generationId
-    );
-    acc.messages.push({
-      role: "assistant",
+    const datasetMessage = {
+      generationId: message.generationId,
+      role: "assistant" as const,
       content: [
         {
-          type: "tool-call",
+          type: "tool-call" as const,
           input: message.arguments,
           toolCallId: message.toolCallId,
           toolName: message.toolName,
-          ...(providerOptions ? { providerOptions } : {}),
         },
       ],
-    });
+    };
+    acc.messages.push(datasetMessage);
     return acc;
   } else if (message.role === "tool") {
     logStep(`tool-result (${message.toolName})`);
-    const providerOptions = mergeProviderOptions(
-      (message as unknown as { providerOptions?: ProviderOptions })
-        .providerOptions,
-      message.generationId
-    );
-    acc.messages.push({
-      role: "tool",
+    const datasetMessage = {
+      generationId: message.generationId,
+      role: "tool" as const,
       content: [
         {
-          type: "tool-result",
+          type: "tool-result" as const,
           toolCallId: message.toolCallId,
           toolName: message.toolName,
           output: message.result,
-          ...(providerOptions ? { providerOptions } : {}),
         },
       ],
-    });
+    };
+    acc.messages.push(datasetMessage);
     return acc;
   }
   return acc;

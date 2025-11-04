@@ -5,18 +5,17 @@ import type {
   GenerationMessageProvider,
   IMessageSchemaContext,
 } from "./types";
-import { isEmptyObjectSchema, type Awaitable } from "./utils";
+import { createGenerationId, isEmptyObjectSchema, type Awaitable } from "./utils";
 import type { ToolCallPart, ModelMessage } from "ai";
-import { TORQUE_PROVIDER_NAMESPACE } from "./constants";
 
 type GeneratedToolCallArgs<T extends z.ZodObject> = {
   args: z.infer<T>;
-  generationId?: string;
+  generationId: string;
 };
 
 type GeneratedToolResult<T extends z.ZodType> = {
   result: z.infer<T>;
-  generationId?: string;
+  generationId: string;
 };
 
 type MessageRole = "user" | "assistant" | "system";
@@ -27,11 +26,16 @@ interface GenerateMessageOptions {
   context: IMessageSchemaContext;
 }
 
+export interface GeneratedMessageResult {
+  text: string;
+  generationId: string;
+}
+
 export async function generateMessageFromPrompt({
   role,
   prompt,
   context,
-}: GenerateMessageOptions): Promise<string> {
+}: GenerateMessageOptions): Promise<GeneratedMessageResult> {
   const { structure, acc, ai, generationContext } = context;
 
   const roleSpecificInstructions = {
@@ -74,13 +78,16 @@ Important: Only generate the message content, do not include any meta-commentary
     context
   );
 
-  const { text } = await ai.generateText([
+  const result = await ai.generateText([
     { role: "system", content: systemPrompt },
     ...contextMessages,
     { role: "user", content: userPrompt },
   ]);
 
-  return text;
+  return {
+    text: result.text,
+    generationId: result.response?.id ?? createGenerationId("msg"),
+  };
 }
 
 async function resolveGenerationContextMessages(
@@ -143,7 +150,7 @@ export function generateToolCallArgs<T extends z.ZodObject>(
     if (isEmptyObjectSchema(schema)) {
       return {
         args: schema.parse({}) as z.infer<T>,
-        generationId: undefined,
+        generationId: createGenerationId("tool-call"),
       };
     }
 
@@ -193,7 +200,7 @@ export function generateToolCallArgs<T extends z.ZodObject>(
 
     return {
       args: result.object,
-      generationId: result.response?.id,
+      generationId: result.response?.id ?? createGenerationId("tool-call"),
     };
   };
 }
@@ -219,7 +226,7 @@ export function generateToolResult<T extends z.ZodType>(
     if (isEmptyObjectSchema(schema)) {
       return {
         result: schema.parse({}) as z.infer<T>,
-        generationId: existingGenerationId,
+        generationId: existingGenerationId ?? createGenerationId("tool-result"),
       };
     }
 
@@ -272,7 +279,8 @@ export function generateToolResult<T extends z.ZodType>(
     ]);
 
     const generatedResult = result.object as any;
-    const generationId = result.response?.id ?? existingGenerationId;
+    const generationId =
+      result.response?.id ?? existingGenerationId ?? createGenerationId("tool-result");
 
     if ("result" in generatedResult) {
       return {
@@ -312,19 +320,17 @@ function findExistingToolCallArgs<T extends z.ZodObject>(
         typeof (toolCall as any).generationId === "string"
           ? (toolCall as any).generationId
           : undefined;
-
-      const providerGenerationId =
-        typeof toolCall.providerOptions?.[TORQUE_PROVIDER_NAMESPACE]?.[
-          "generationId"
-        ] === "string"
-          ? (toolCall.providerOptions?.[TORQUE_PROVIDER_NAMESPACE]?.[
-              "generationId"
-            ] as string)
+      const messageGenerationId =
+        typeof (assistantMessage as any).generationId === "string"
+          ? ((assistantMessage as any).generationId as string)
           : undefined;
 
       return {
         args: toolCall.input as z.infer<T>,
-        generationId: directGenerationId ?? providerGenerationId,
+        generationId:
+          directGenerationId ??
+          messageGenerationId ??
+          createGenerationId("tool-call"),
       };
     }
   }
