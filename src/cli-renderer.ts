@@ -267,9 +267,7 @@ export class DatasetGenerationRenderer {
         : "⏸️";
 
     if (gen.status === "failed") {
-      const errorMsg = gen.error
-        ? gen.error.substring(0, 60) + (gen.error.length > 60 ? "..." : "")
-        : "Unknown error";
+      const errorMsg = gen.error ? gen.error : "Unknown error";
       console.log(`   ${statusIcon} Gen #${gen.id + 1}: ${errorMsg}`);
       return;
     }
