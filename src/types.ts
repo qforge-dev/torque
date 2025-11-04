@@ -22,43 +22,47 @@ export type IMessageSchemaNullableItem =
   | IToolCallResultSchema
   | null;
 
-export type IMessageSchemaStructure = {
-  metadata: Record<string, JsonValue>;
-  messages: Array<
-    | {
-        role: "user" | "assistant" | "system";
-        type: "text";
-        content: string;
-        generationId: string;
-      }
-    | {
-        role: "assistant";
-        content: string;
-        toolCalls: Array<{
-          toolCallId: string;
-          toolName: string;
-          arguments: Record<string, any>;
-          generationId: string;
-        }>;
-        generationId: string;
-      }
-    | {
-        role: "assistant";
-        type: "tool-call";
+export type IMessageSchemaStructureMessage =
+  | {
+      role: "user" | "assistant" | "system";
+      type: "text";
+      content: string;
+      generationId: string;
+    }
+  | {
+      role: "assistant";
+      content: string;
+      toolCalls: Array<{
         toolCallId: string;
         toolName: string;
         arguments: Record<string, any>;
         generationId: string;
-      }
-    | {
-        role: "tool";
-        type: "tool-result";
-        toolCallId: string;
-        toolName: string;
-        result: any;
-        generationId: string;
-      }
-  >;
+      }>;
+      generationId: string;
+    }
+  | {
+      role: "assistant";
+      type: "tool-call";
+      toolCallId: string;
+      toolName: string;
+      arguments: Record<string, any>;
+      generationId: string;
+    }
+  | {
+      role: "tool";
+      type: "tool-result";
+      toolCallId: string;
+      toolName: string;
+      result: any;
+      generationId: string;
+    };
+
+export type IMessageSchemaStructure = {
+  metadata: Record<string, JsonValue>;
+  messages: Array<{
+    schema: IMessageSchemaNullableItem;
+    message: IMessageSchemaStructureMessage;
+  }>;
   tools: Array<{
     name: string;
     description: string;

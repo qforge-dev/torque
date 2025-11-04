@@ -394,11 +394,16 @@ async function checkMessageSchemaStructure(
         });
       }
 
-      structure.messages.push({
-        role: "assistant",
+      const structureMessage = {
+        role: "assistant" as const,
         content: message.content,
         toolCalls: toolCallStructures,
         generationId: message.generationId,
+      };
+
+      structure.messages.push({
+        schema: message,
+        message: structureMessage,
       });
 
       // Track seed count after this message
@@ -407,11 +412,16 @@ async function checkMessageSchemaStructure(
         structure.seedCounts.push(currentCount);
       }
     } else {
-      structure.messages.push({
+      const structureMessage = {
         role: message.role,
-        type: "text",
+        type: "text" as const,
         content: message.content,
         generationId: message.generationId,
+      };
+
+      structure.messages.push({
+        schema: message,
+        message: structureMessage,
       });
 
       // Track seed count after this message
@@ -424,13 +434,18 @@ async function checkMessageSchemaStructure(
   }
 
   if (message.role === "assistant") {
-    structure.messages.push({
-      role: "assistant",
-      type: "tool-call",
+    const structureMessage = {
+      role: "assistant" as const,
+      type: "tool-call" as const,
       toolCallId: message.toolCallId,
       toolName: message.toolName,
       arguments: message.arguments,
       generationId: message.generationId,
+    };
+
+    structure.messages.push({
+      schema: message,
+      message: structureMessage,
     });
 
     // Track seed count after this message
@@ -440,13 +455,18 @@ async function checkMessageSchemaStructure(
     }
     return structure;
   } else if (message.role === "tool") {
-    structure.messages.push({
-      role: "tool",
-      type: "tool-result",
+    const structureMessage = {
+      role: "tool" as const,
+      type: "tool-result" as const,
       toolCallId: message.toolCallId,
       toolName: message.toolName,
       result: message.result,
       generationId: message.generationId,
+    };
+
+    structure.messages.push({
+      schema: message,
+      message: structureMessage,
     });
 
     // Track seed count after this message
@@ -551,8 +571,9 @@ async function convertMessageSchemaToDatasetMessage(
           expectedCheckSeedCount !== undefined
         ) {
           if (currentGenerateSeedCount !== expectedCheckSeedCount) {
-            const messageInfo =
+            const messageEntry =
               structure.messages[progress.currentStepIndex.value];
+            const messageInfo = messageEntry?.message;
             const messageIndex = progress.currentStepIndex.value + 1;
             const totalMessages = progress.totalSteps;
 
