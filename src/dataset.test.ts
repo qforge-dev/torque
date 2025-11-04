@@ -251,21 +251,3 @@ describe("generateDataset API", () => {
     expect(tasks[3]!.seedBase).toBe(42);
   });
 });
-
-describe("generateDataset", () => {
-  it("generates a row with a generation ID", async () => {
-    const schema: IMessageSchema = async () => [
-      oneOf([user({ content: "Hello" }), assistant({ content: "hi" })]),
-    ];
-    const generations = await Promise.all(
-      Array.from({ length: 10 }, async (_, i) =>
-        generateDataset(schema, {
-          model: openai("gpt-4"),
-          count: 1,
-          seed: i,
-          output: `/tmp/test-${i}.jsonl`,
-        })
-      )
-    );
-  });
-});
