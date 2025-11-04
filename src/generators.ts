@@ -39,10 +39,14 @@ function omitGenerationIdReplacer(key: string, value: unknown) {
 function formatMessagesAndStructure(context: IMessageSchemaContext): string {
   const { structure, acc } = context;
   return JSON.stringify(
-    structure.messages.map((m, i) => ({
-      ...(acc.messages[i] ?? m.schema),
-      currentlyGenerating: i === acc.messages.length,
-    })),
+    structure.messages.map((m, i) => {
+      const messageOrSchema = acc.messages[i] ?? m.schema;
+      const isCurrentlyGenerating = i === acc.messages.length;
+
+      return isCurrentlyGenerating
+        ? { ...messageOrSchema, CURRENTLY_GENERATING: true }
+        : messageOrSchema;
+    }),
     omitGenerationIdReplacer,
     2
   );
@@ -78,7 +82,8 @@ Below you'll see the complete conversation flow. Each item is EITHER:
 - An actual generated message (already created) - use this as concrete context
 - A schema/structure definition (not yet generated) - use this to understand what's planned next
 
-The message marked "currentlyGenerating: true" is what YOU need to generate now.
+**IMPORTANT: The message with "CURRENTLY_GENERATING: true" is what YOU need to generate now.**
+
 Generate it based on:
 1. All previous actual messages (for context and continuity)
 2. The schema/prompt of the current message (for guidance on content)
@@ -91,11 +96,13 @@ Available tools:
 ${JSON.stringify(acc.tools, null, 2)}
 `;
 
-  const userPrompt = `Generate the next ${role} message based on this prompt:
+  const userPrompt = `Generate the ${role} message marked with "CURRENTLY_GENERATING: true" based on this prompt:
 
 ${prompt}
 
-Important: Only generate the message content, do not include any meta-commentary or explanation.`;
+Important: 
+- Maintain continuity with previous messages and align with the planned conversation flow
+- Only generate the message content, do not include any meta-commentary or explanation`;
 
   const contextMessages = await resolveGenerationContextMessages(
     generationContext,
@@ -213,7 +220,7 @@ Below you'll see the complete conversation flow. Each item is EITHER:
 - An actual generated message (already created) - use this as concrete context
 - A schema/structure definition (not yet generated) - use this to understand what's planned next
 
-The message marked "currentlyGenerating: true" is what YOU need to generate arguments for.
+**IMPORTANT: The message with "CURRENTLY_GENERATING: true" is what YOU need to generate arguments for.**
 
 Messages and structure:
 ${formatMessagesAndStructure(context)}
@@ -225,7 +232,11 @@ ${prompt ?? ""}
       {
         role: "user",
         content: `
-        ## Return a message in JSON format that matches the following schema:
+        ## Generate tool call arguments for the message marked with "CURRENTLY_GENERATING: true"
+        
+        Keep the conversation context in mind - your arguments should flow naturally from what was said before and support what comes after.
+        
+        Return a JSON object that matches the following schema:
         ${JSON.stringify(z.toJSONSchema(schema), null, 2)}
         `,
       },
@@ -299,7 +310,7 @@ Below you'll see the complete conversation flow. Each item is EITHER:
 - An actual generated message (already created) - use this as concrete context
 - A schema/structure definition (not yet generated) - use this to understand what's planned next
 
-The message marked "currentlyGenerating: true" is what YOU need to generate a result for.
+**IMPORTANT: The message with "CURRENTLY_GENERATING: true" is what YOU need to generate a result for.**
 
 Messages and structure:
 ${formatMessagesAndStructure(context)}
@@ -314,7 +325,11 @@ ${prompt ?? ""}
       {
         role: "user",
         content: `
-        ## Return a message in JSON format that matches the following schema:
+        ## Generate tool result for the message marked with "CURRENTLY_GENERATING: true"
+        
+        Keep the conversation context in mind - your result should be consistent with the tool call arguments and enable the conversation to progress naturally toward planned future messages.
+        
+        Return a JSON object that matches the following schema:
         ${JSON.stringify(z.toJSONSchema(schema), null, 2)}
         `,
       },
