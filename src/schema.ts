@@ -215,7 +215,7 @@ export interface IToolDefinition<
   parameters: T;
   toolFunction: () => (
     context: IMessageSchemaContext
-  ) => IToolFunctionSchema<T>;
+  ) => IToolFunctionSchema<T, R>;
   toolCall: (
     id: string,
     args:
@@ -260,6 +260,7 @@ export function tool<T extends z.ZodObject, R extends z.ZodType = any>({
       name,
       description,
       parameters,
+      output,
     }),
     toolCall: (id, args) => async (ctx) => {
       if (ctx.phase === "check") {

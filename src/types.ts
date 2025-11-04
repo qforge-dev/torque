@@ -67,6 +67,7 @@ export type IMessageSchemaStructure = {
     name: string;
     description: string;
     parameters: Record<string, any>;
+    output: Record<string, any>;
   }>;
 };
 
@@ -138,10 +139,11 @@ export interface ISystemMessageSchema {
   generationId: string;
 }
 
-export interface IToolFunctionSchema<T extends z.ZodObject = any> {
+export interface IToolFunctionSchema<T extends z.ZodObject = any, R extends z.ZodType = any> {
   name: string;
   description: string;
   parameters: T;
+  output: R;
 }
 
 export interface IToolCallSchema<T extends Record<string, any> = {}> {
@@ -166,6 +168,7 @@ export interface IDatasetTool {
   name: string;
   description: string;
   parameters: Record<string, any>;
+  output: Record<string, any>;
 }
 
 export interface IDatasetRow {

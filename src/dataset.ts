@@ -366,6 +366,7 @@ async function checkMessageSchemaStructure(
         name: message.name,
         description: message.description,
         parameters: z.toJSONSchema(message.parameters),
+        output: z.toJSONSchema(message.output),
       });
     }
     return structure;
@@ -546,6 +547,7 @@ async function convertMessageSchemaToDatasetMessage(
       description: message.description,
       name: message.name,
       parameters: z.toJSONSchema(message.parameters),
+      output: z.toJSONSchema(message.output),
     });
     return acc;
   }

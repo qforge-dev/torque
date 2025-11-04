@@ -32,6 +32,9 @@ export class DatasetGenerationRenderer {
   private outputFile: string = "";
   private concurrency: number = 1;
   private isStarted: boolean = false;
+  private lastRenderTime: number = 0;
+  private pendingRenderTimer?: NodeJS.Timeout;
+  private readonly RENDER_THROTTLE_MS = 500; // 2 renders per second max
 
   constructor() {}
 
@@ -137,6 +140,12 @@ export class DatasetGenerationRenderer {
    * Finish and show final summary
    */
   finish() {
+    // Clear any pending render timer
+    if (this.pendingRenderTimer) {
+      clearTimeout(this.pendingRenderTimer);
+      this.pendingRenderTimer = undefined;
+    }
+
     const elapsedTime = ((Date.now() - this.startTime) / 1000).toFixed(2);
 
     // Clear and show final state
@@ -186,11 +195,41 @@ export class DatasetGenerationRenderer {
   }
 
   /**
-   * Render the current state
+   * Render the current state with throttling
    */
   private render() {
     if (!this.isStarted) return;
 
+    const now = Date.now();
+    const timeSinceLastRender = now - this.lastRenderTime;
+
+    // If enough time has passed, render immediately
+    if (timeSinceLastRender >= this.RENDER_THROTTLE_MS) {
+      this.renderImmediate();
+      this.lastRenderTime = now;
+
+      // Clear any pending render since we just rendered
+      if (this.pendingRenderTimer) {
+        clearTimeout(this.pendingRenderTimer);
+        this.pendingRenderTimer = undefined;
+      }
+    } else {
+      // Schedule a render for later if not already scheduled
+      if (!this.pendingRenderTimer) {
+        const delay = this.RENDER_THROTTLE_MS - timeSinceLastRender;
+        this.pendingRenderTimer = setTimeout(() => {
+          this.pendingRenderTimer = undefined;
+          this.renderImmediate();
+          this.lastRenderTime = Date.now();
+        }, delay);
+      }
+    }
+  }
+
+  /**
+   * Perform the actual render (no throttling)
+   */
+  private renderImmediate() {
     this.clearConsole();
 
     // Header
