@@ -36,6 +36,18 @@ function omitGenerationIdReplacer(key: string, value: unknown) {
   return value;
 }
 
+function formatMessagesAndStructure(context: IMessageSchemaContext): string {
+  const { structure, acc } = context;
+  return JSON.stringify(
+    structure.messages.map((m, i) => ({
+      ...(acc.messages[i] ?? m.schema),
+      currentlyGenerating: i === acc.messages.length,
+    })),
+    omitGenerationIdReplacer,
+    2
+  );
+}
+
 export interface GeneratedMessageResult {
   text: string;
   generationId: string;
@@ -55,26 +67,28 @@ export async function generateMessageFromPrompt({
     system: `You are generating a system message. System messages provide instructions, context, or guidelines for the conversation.`,
   };
 
-  const systemPrompt = `You are a synthetic dataset generator. You are given a set of tools, previous messages and the structure of the whole conversation.
-Take into account the structure of the conversation when generating the next message. The message you are currently generating is marked as "currentlyGenerating: true" in the structure.
-Your task is to generate a new ${role} message to continue the conversation based on the prompt for the next message.
+  const systemPrompt = `You are a synthetic dataset generator creating realistic conversation data.
+
+## Your Task
+Generate a new ${role} message to continue the conversation naturally and contextually.
 ${roleSpecificInstructions[role]}
 
-Previous messages:
-${JSON.stringify(acc.messages, omitGenerationIdReplacer, 2)}
+## Understanding the Conversation Flow
+Below you'll see the complete conversation flow. Each item is EITHER:
+- An actual generated message (already created) - use this as concrete context
+- A schema/structure definition (not yet generated) - use this to understand what's planned next
+
+The message marked "currentlyGenerating: true" is what YOU need to generate now.
+Generate it based on:
+1. All previous actual messages (for context and continuity)
+2. The schema/prompt of the current message (for guidance on content)
+3. Future structure definitions (to ensure the conversation flows naturally toward those goals)
+
+Messages and structure:
+${formatMessagesAndStructure(context)}
 
 Available tools:
 ${JSON.stringify(acc.tools, null, 2)}
-
-Conversation structure:
-${JSON.stringify(
-  structure.messages.map((m, i) => ({
-    ...m,
-    currentlyGenerating: i === acc.messages.length,
-  })),
-  omitGenerationIdReplacer,
-  2
-)}
 `;
 
   const userPrompt = `Generate the next ${role} message based on this prompt:
@@ -188,16 +202,23 @@ export function generateToolCallArgs<T extends z.ZodObject>(
       {
         role: "system",
         content:
-          `You are a tool call arguments generator. You are given a schema and a prompt. You need to generate the arguments for the tool call.
-          Generate realistic, contextually appropriate arguments (based on the conversation history) that match the tool's parameter schema in JSON format.
-          Make sure the parameters match the user's latest request.
-          
-        ## Message History
-        ${context.acc.messages
-          .map((m) => `- ${m.role}: ${JSON.stringify(m.content, null, 2)}`)
-          .join("\n")}
+          `You are a tool call arguments generator creating realistic conversation data.
 
-        ${prompt ?? ""}
+## Your Task
+Generate realistic, contextually appropriate arguments that match the tool's parameter schema in JSON format.
+Make sure the parameters match the user's latest request and fit naturally within the conversation flow.
+
+## Understanding the Conversation Flow
+Below you'll see the complete conversation flow. Each item is EITHER:
+- An actual generated message (already created) - use this as concrete context
+- A schema/structure definition (not yet generated) - use this to understand what's planned next
+
+The message marked "currentlyGenerating: true" is what YOU need to generate arguments for.
+
+Messages and structure:
+${formatMessagesAndStructure(context)}
+
+${prompt ?? ""}
         `.trim(),
       },
       ...contextMessages,
@@ -264,20 +285,29 @@ export function generateToolResult<T extends z.ZodType>(
       {
         role: "system",
         content:
-          `You are a tool result generator. You are given a schema and a tool call. You need to generate the result for the tool call.
-          
-        ## Truth 
-        Generated responses do not need to be real or accurate. They can be made up. Act as if you know the truth even if you don't.
+          `You are a tool result generator creating realistic conversation data.
 
-        ## Message History
-        ${context.acc.messages
-          .map((m) => `- ${m.role}: ${JSON.stringify(m.content, null, 2)}`)
-          .join("\n")}
-          
-        ## Tool Call
-        Arguments: ${JSON.stringify(resolvedArgs, null, 2)}
+## Your Task
+Generate a realistic result for the tool call that matches the result schema in JSON format.
 
-        ${prompt ?? ""}
+## Important Note on Truth
+Generated responses do not need to be real or accurate. They can be made up. Act as if you know the truth even if you don't.
+The goal is to create realistic-looking data that fits the conversation flow.
+
+## Understanding the Conversation Flow
+Below you'll see the complete conversation flow. Each item is EITHER:
+- An actual generated message (already created) - use this as concrete context
+- A schema/structure definition (not yet generated) - use this to understand what's planned next
+
+The message marked "currentlyGenerating: true" is what YOU need to generate a result for.
+
+Messages and structure:
+${formatMessagesAndStructure(context)}
+
+## Tool Call Arguments
+${JSON.stringify(resolvedArgs, null, 2)}
+
+${prompt ?? ""}
         `.trim(),
       },
       ...contextMessages,
