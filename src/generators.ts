@@ -62,13 +62,13 @@ export async function generateMessageFromPrompt({
   prompt,
   context,
 }: GenerateMessageOptions): Promise<GeneratedMessageResult> {
-  const { structure, acc, ai, generationContext } = context;
+  const { acc, ai, generationContext } = context;
   const generatedLocalId = createGenerationId("msg");
 
   const roleSpecificInstructions = {
     user: `You are generating a user message - not an assistant or system message.`,
-    assistant: `You are generating an assistant message. The assistant should be helpful, accurate, and appropriately use tools when needed. The assistant messages should be 2-5 sentences long.`,
-    system: `You are generating a system message. System messages provide instructions, context, or guidelines for the conversation.`,
+    assistant: `You are generating an assistant message - not a user or system message.`,
+    system: `You are generating a system message - not a user or assistant message.`,
   };
 
   const systemPrompt = `You are a synthetic dataset generator creating realistic conversation data.
