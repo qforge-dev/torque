@@ -203,9 +203,12 @@ export interface ISchemaWithCount {
   seed?: number;
 }
 
+export type DatasetFormat = "jsonl" | "parquet";
+
 interface IGenerateDatasetBaseArgs {
   seed?: number;
   output?: string;
+  format?: DatasetFormat;
   model: LanguageModel;
   concurrency?: number;
   generationContext?: GenerationContext;

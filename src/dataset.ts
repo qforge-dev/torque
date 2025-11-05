@@ -10,6 +10,7 @@ import type {
   JsonValue,
   ISchemaWithCount,
   IToolCallSchema,
+  DatasetFormat,
 } from "./types";
 import {
   processBatchWithConcurrency,
@@ -26,20 +27,18 @@ import type {
   IGenerateDatasetArgsWithCount,
   IGenerateDatasetArgsMultiSchema,
 } from "./types";
+import { createWriter } from "./writer";
 
-// Overload 1: Array of schemas with individual counts (count not allowed in options)
 export async function generateDataset(
   schemas: ISchemaWithCount[],
   options: IGenerateDatasetArgsMultiSchema
 ): Promise<IDatasetRow[]>;
 
-// Overload 2: Single schema with count in options (existing API)
 export async function generateDataset(
   conversationSchemaFactory: IMessageSchema,
   options: IGenerateDatasetArgsWithCount
 ): Promise<IDatasetRow[]>;
 
-// Implementation
 export async function generateDataset(
   schemaOrSchemas: IMessageSchema | ISchemaWithCount[],
   options:
@@ -50,6 +49,7 @@ export async function generateDataset(
   const {
     seed,
     output,
+    format = "jsonl",
     model,
     concurrency = 5,
     generationContext,
@@ -74,11 +74,15 @@ export async function generateDataset(
   const totalCount = schemaEntries.reduce((sum, entry) => sum + entry.count, 0);
 
   // Generate default output path if not provided
-  const outputPath = output || generateDefaultOutputPath();
+  const outputPath = output || generateDefaultOutputPath(format);
 
   // Ensure output directory exists
   const outputDir = path.dirname(outputPath);
   await fsp.mkdir(outputDir, { recursive: true });
+
+  // Initialize the writer for the specified format
+  const writer = createWriter(format, outputPath);
+  await writer.init();
 
   // Initialize the CLI renderer
   const renderer = new DatasetGenerationRenderer();
@@ -117,71 +121,70 @@ export async function generateDataset(
     }
   }
 
-  const dataset = await processBatchWithConcurrency(
-    tasks,
-    concurrency,
-    async (task) => {
-      const rowSeed =
-        task.seedBase !== undefined
-          ? task.seedBase + task.seedOffset
-          : undefined;
+  try {
+    const dataset = await processBatchWithConcurrency(
+      tasks,
+      concurrency,
+      async (task) => {
+        const rowSeed =
+          task.seedBase !== undefined
+            ? task.seedBase + task.seedOffset
+            : undefined;
 
-      const row = await generateDatasetRow(
-        task.schema,
-        model,
-        rowSeed,
-        outputPath,
-        renderer,
-        task.index,
-        generationStartTimestamp,
-        generationContext,
-        metadata
-      );
+        const row = await generateDatasetRow(
+          task.schema,
+          model,
+          rowSeed,
+          outputPath,
+          renderer,
+          task.index,
+          generationStartTimestamp,
+          generationContext,
+          metadata
+        );
 
-      // Save row immediately after generation
-      await appendRowToFile(outputPath, row);
+        // Write row immediately after generation
+        // Thread-safety is handled internally by the writer
+        await writer.appendRow(row);
 
-      // Mark generation as completed
-      renderer.completeGeneration(task.index);
+        // Mark generation as completed
+        renderer.completeGeneration(task.index);
 
-      return row;
-    },
-    {
-      onProgress: (completed, inProgress, total) => {
-        const failed = renderer.getFailedCount();
-        renderer.updateProgress({ completed, inProgress, failed, total });
+        return row;
       },
-      onError: (error, task) => {
-        renderer.failGeneration(task.index, error.message);
-      },
-    }
-  );
+      {
+        onProgress: (completed, inProgress, total) => {
+          const failed = renderer.getFailedCount();
+          renderer.updateProgress({ completed, inProgress, failed, total });
+        },
+        onError: (error, task) => {
+          renderer.failGeneration(task.index, error.message);
+        },
+      }
+    );
 
-  renderer.finish();
+    renderer.finish();
 
-  // Filter out failed generations (undefined values)
-  const successfulDataset = dataset.filter(
-    (row): row is IDatasetRow => row !== undefined
-  );
+    // Filter out failed generations (undefined values)
+    const successfulDataset = dataset.filter(
+      (row): row is IDatasetRow => row !== undefined
+    );
 
-  return successfulDataset;
+    return successfulDataset;
+  } finally {
+    // Always close the writer
+    await writer.close();
+  }
 }
 
-function generateDefaultOutputPath(): string {
+function generateDefaultOutputPath(format: DatasetFormat = "jsonl"): string {
   const timestamp = new Date()
     .toISOString()
     .replace(/[:.]/g, "-")
     .replace(/T/, "_")
     .split("Z")[0];
-  return `data/dataset_${timestamp}.jsonl`;
-}
-
-async function appendRowToFile(
-  filePath: string,
-  row: IDatasetRow
-): Promise<void> {
-  const jsonLine = JSON.stringify(row) + "\n";
-  await fsp.appendFile(filePath, jsonLine, "utf-8");
+  const extension = format === "parquet" ? "parquet" : "jsonl";
+  return `data/dataset_${timestamp}.${extension}`;
 }
 
 function isMetadataObject(

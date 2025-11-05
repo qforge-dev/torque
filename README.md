@@ -333,6 +333,39 @@ await generateDataset(schema, {
 - If omitted, a random seed is generated and displayed in the CLI
 - Seeds control both `torque` random selections and AI model sampling (when supported by the provider)
 
+### Output Formats
+
+Choose your preferred output format for generated datasets:
+
+```typescript
+// Export as JSONL (default - line-delimited JSON)
+await generateDataset(schema, {
+  count: 100,
+  model: openai("gpt-4o-mini"),
+  format: "jsonl", // default, can be omitted
+  output: "data/dataset.jsonl",
+});
+
+// Export as Parquet (columnar format, efficient for analytics)
+await generateDataset(schema, {
+  count: 100,
+  model: openai("gpt-4o-mini"),
+  format: "parquet",
+  output: "data/dataset.parquet",
+});
+```
+
+**Supported formats:**
+
+- **`jsonl`** (default) - JSON Lines format, one row per line. Best for streaming and line-by-line processing.
+- **`parquet`** - Apache Parquet columnar format. More efficient for large datasets and analytics tools (e.g., Pandas, DuckDB, Apache Spark).
+
+Both formats write rows incrementally as they're generated, so large datasets won't consume excessive memory.
+
+> 💡 When `format` is specified without `output`, the file extension is automatically set based on the format.
+
+> 💡 See full example: [`examples/parquet-export.ts`](examples/parquet-export.ts)
+
 ## 🔧 Advanced Examples
 
 ### Async Tool Pattern
