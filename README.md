@@ -38,7 +38,7 @@ await generateDataset(
       { value: assistant({ content: "Hello!" }), weight: 0.3 }, // static
       generatedAssistant({ prompt: "Respond to greeting" }), // AI generated, gets remaining weight
     ]),
-    ...times(between(1, 3), [
+    times(between(1, 3), [
       generatedUser({
         prompt: "Chat about weather. Optionally mentioning previous message",
       }),
@@ -210,13 +210,13 @@ const schema = () => [
   ]),
 
   // Repeat pattern 3 times
-  ...times(3, [
+  times(3, [
     generatedUser({ prompt: "Ask a question" }),
     generatedAssistant({ prompt: "Answer the question" }),
   ]),
 
   // Repeat random number of times (1-5)
-  ...times(between(1, 5), [generatedUser({ prompt: "Follow-up question" })]),
+  times(between(1, 5), [generatedUser({ prompt: "Follow-up question" })]),
 
   // Optionally include (50% chance)
   optional(assistant({ content: "Anything else I can help with?" })),
@@ -411,7 +411,7 @@ await generateDataset(
 
     // Filler conversation while waiting.
     // While generating AI is aware how many messages are left.
-    ...times(between(1, 3), [
+    times(between(1, 3), [
       generatedUser({ prompt: "Casual conversation, unrelated to search" }),
       generatedAssistant({ prompt: "Respond naturally to casual topic" }),
     ]),

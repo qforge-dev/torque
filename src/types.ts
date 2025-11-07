@@ -22,6 +22,12 @@ export type IMessageSchemaNullableItem =
   | IToolCallResultSchema
   | null;
 
+export type IMessageSchemaGroup = Array<IMessageSchema | IMessageSchemaGroup>;
+
+export type IMessageSchemaReturn =
+  | IMessageSchemaNullableItem
+  | IMessageSchemaGroup;
+
 export type IMessageSchemaStructureMessage =
   | {
       role: "user" | "assistant" | "system";
@@ -116,7 +122,7 @@ export type IMessageSchemaContext = {
 
 export type IMessageSchema = (
   context: IMessageSchemaContext
-) => Awaitable<IMessageSchemaNullableItem | Array<IMessageSchema>>;
+) => Awaitable<IMessageSchemaReturn>;
 
 export interface IUserMessageSchema {
   role: "user";

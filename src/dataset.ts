@@ -5,6 +5,7 @@ import type {
   IConvertMessageSchemaToDatasetMessageAcc,
   IDatasetRow,
   IMessageSchema,
+  IMessageSchemaGroup,
   IMessageSchemaStructure,
   GenerationContext,
   JsonValue,
@@ -322,8 +323,10 @@ interface IStructureWithSeedCounts extends IMessageSchemaStructure {
   seedCounts?: number[];
 }
 
+type SchemaNode = IMessageSchema | IMessageSchemaGroup;
+
 async function checkMessageSchemaStructure(
-  messageFactory: IMessageSchema,
+  messageFactory: SchemaNode,
   aiAgent: IAiAgent,
   structure: IStructureWithSeedCounts = {
     messages: [],
@@ -333,6 +336,18 @@ async function checkMessageSchemaStructure(
   },
   generationContext?: GenerationContext
 ): Promise<IStructureWithSeedCounts> {
+  if (Array.isArray(messageFactory)) {
+    for (const schema of messageFactory) {
+      structure = await checkMessageSchemaStructure(
+        schema,
+        aiAgent,
+        structure,
+        generationContext
+      );
+    }
+    return structure;
+  }
+
   if (!structure.metadata) {
     structure.metadata = {};
   }
@@ -499,7 +514,7 @@ interface IGenerationProgress {
 }
 
 async function convertMessageSchemaToDatasetMessage(
-  messageFactory: IMessageSchema,
+  messageFactory: SchemaNode,
   aiAgent: IAiAgent,
   acc: IConvertMessageSchemaToDatasetMessageAcc = {
     messages: [],
@@ -515,6 +530,20 @@ async function convertMessageSchemaToDatasetMessage(
   generationContext: GenerationContext | undefined,
   progress?: IGenerationProgress
 ): Promise<IConvertMessageSchemaToDatasetMessageAcc> {
+  if (Array.isArray(messageFactory)) {
+    for (const schema of messageFactory) {
+      acc = await convertMessageSchemaToDatasetMessage(
+        schema,
+        aiAgent,
+        acc,
+        structure,
+        generationContext,
+        progress
+      );
+    }
+    return acc;
+  }
+
   if (
     Object.keys(acc.metadata).length === 0 &&
     Object.keys(structure.metadata).length > 0

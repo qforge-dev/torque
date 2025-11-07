@@ -60,7 +60,7 @@ await generateDataset(
     For longer flows, reintroduce additional turns such as:
       generatedUser({ prompt: `Ask to ship it to ${faker.location.streetAddress()}, ${faker.location.city()}` }),
       generatedAssistant({ prompt: "Confirm the shipping address and provide next steps" }),
-      // ...times(between(1, 3), [...]) // requires uncommenting the helpers at the top
+      // times(between(1, 3), [...]) // requires uncommenting the helpers at the top
     */
   ],
   {

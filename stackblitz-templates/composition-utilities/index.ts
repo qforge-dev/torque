@@ -16,6 +16,7 @@ import {
   between,
   optional,
 } from "@qforge/torque";
+import type { IMessageSchemaGroup } from "@qforge/torque";
 import { createOpenAI } from "@ai-sdk/openai";
 const apiKey = process.env.OPENAI_API_KEY;
 
@@ -44,7 +45,7 @@ await generateDataset(
     assistant({ content: "Hello! How can I assist you?" }),
 
     // Variable number of Q&A exchanges
-    ...times(between(2, 4), [
+    times(between(2, 4), [
       generatedUser({ prompt: "Ask a question about programming" }),
       generatedAssistant({
         prompt: "Provide a helpful answer with code examples",
@@ -57,11 +58,11 @@ await generateDataset(
       assistant({ content: "You're welcome! Feel free to ask anytime." })
     ),
     /*
-    Variations:
-      - Swap in user({ content: "Hello" }) above for a deterministic opening.
-      - Replace the times(between(...)) block with `...times(3, [...])` to fix the length.
-      - Keep only the optional(...) lines to spotlight optional() on its own.
-    */
+      Variations:
+        - Swap in user({ content: "Hello" }) above for a deterministic opening.
+        - Replace the times(between(...)) block with `times(3, [...])` to fix the length.
+        - Keep only the optional(...) lines to spotlight optional() on its own.
+      */
   ],
   {
     count: 5,

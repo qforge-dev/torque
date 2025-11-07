@@ -69,16 +69,12 @@ describe("metadata helper", () => {
       metadata: { existing: "value" },
     };
 
-    const checkContext = {
-      acc: {
-        messages: [],
-        tools: [],
-        metadata: { existing: "value" },
-      },
+    const checkContext: IMessageSchemaContext = {
+      acc: { messages: [], tools: [], metadata: { existing: "value" } },
       ai: {} as any,
       structure,
-      phase: "check" as const,
-    } as IMessageSchemaContext;
+      phase: "check",
+    };
 
     const result = metadata({ flag: true })(checkContext);
 
@@ -92,14 +88,11 @@ describe("metadata helper", () => {
       flag: true,
     });
 
-    const generateContext = {
+    const generateContext: IMessageSchemaContext = {
       ...checkContext,
-      phase: "generate" as const,
-      acc: {
-        ...checkContext.acc,
-        metadata: { ...checkContext.acc.metadata },
-      },
-    } as IMessageSchemaContext;
+      phase: "generate",
+      acc: { ...checkContext.acc, metadata: { ...checkContext.acc.metadata } },
+    };
 
     const before = { ...generateContext.acc.metadata };
 
@@ -117,12 +110,12 @@ describe("metadata helper", () => {
     let callCount = 0;
     const structure = { messages: [], tools: [], metadata: {} };
 
-    const checkContext = {
+    const checkContext: IMessageSchemaContext = {
       acc: { messages: [], tools: [], metadata: {} },
       ai: {} as any,
       structure,
-      phase: "check" as const,
-    } as IMessageSchemaContext;
+      phase: "check",
+    };
 
     metadata((meta) => {
       callCount += 1;
@@ -146,7 +139,7 @@ describe("metadata helper", () => {
     });
     expect(callCount).toBe(2);
 
-    const generateContext = {
+    const generateContext: IMessageSchemaContext = {
       acc: {
         messages: [],
         tools: [],
@@ -154,8 +147,8 @@ describe("metadata helper", () => {
       },
       ai: {} as any,
       structure,
-      phase: "generate" as const,
-    } as IMessageSchemaContext;
+      phase: "generate",
+    };
 
     metadata(() => {
       callCount += 1;

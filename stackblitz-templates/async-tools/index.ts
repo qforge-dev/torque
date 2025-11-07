@@ -106,7 +106,7 @@ await generateDataset(
     }),
 
     // Filler conversation while waiting (1-3 exchanges)
-    ...times(between(1, 3), [
+    times(between(1, 3), [
       generatedUser({
         prompt:
           "Casual conversation unrelated to the search - could be small talk, other questions, or checking in",
@@ -128,30 +128,30 @@ await generateDataset(
       prompt: "Present the search results in a helpful, organized way",
     }),
     /*
-    To switch to the analysis scenario, enable the tool definition above and replace
-    the main body with:
-      analysisTool.toolFunction(),
-      generatedUser({ prompt: "Request analysis of a dataset" }),
-      generatedAssistant({ prompt: "Acknowledge and start the analysis" }),
-      generatedToolCall(analysisTool, "analysis-1"),
-      analysisTool.toolCallResult("analysis-1", "<tool_ack />"),
-      generatedAssistant({ prompt: "Explain the analysis will take some time due to dataset size" }),
-      ...times(between(2, 4), [
-        generatedUser({
-          prompt:
-            "Either ask about the analysis status or engage in unrelated conversation",
-        }),
+      To switch to the analysis scenario, enable the tool definition above and replace
+      the main body with:
+        analysisTool.toolFunction(),
+        generatedUser({ prompt: "Request analysis of a dataset" }),
+        generatedAssistant({ prompt: "Acknowledge and start the analysis" }),
+        generatedToolCall(analysisTool, "analysis-1"),
+        analysisTool.toolCallResult("analysis-1", "<tool_ack />"),
+        generatedAssistant({ prompt: "Explain the analysis will take some time due to dataset size" }),
+        times(between(2, 4), [
+          generatedUser({
+            prompt:
+              "Either ask about the analysis status or engage in unrelated conversation",
+          }),
+          generatedAssistant({
+            prompt:
+              "Respond appropriately - if asked about status, provide reassurance; otherwise engage naturally",
+          }),
+        ]),
+        generatedToolCall(analysisTool, "analysis-1-FINAL", { reuseArgsFrom: "analysis-1" }),
+        generatedToolCallResult(analysisTool, "analysis-1-FINAL"),
         generatedAssistant({
-          prompt:
-            "Respond appropriately - if asked about status, provide reassurance; otherwise engage naturally",
+          prompt: "Present the analysis results with key insights highlighted",
         }),
-      ]),
-      generatedToolCall(analysisTool, "analysis-1-FINAL", { reuseArgsFrom: "analysis-1" }),
-      generatedToolCallResult(analysisTool, "analysis-1-FINAL"),
-      generatedAssistant({
-        prompt: "Present the analysis results with key insights highlighted",
-      }),
-    */
+      */
   ],
   {
     count: 5,

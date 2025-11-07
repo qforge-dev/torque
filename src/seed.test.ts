@@ -191,9 +191,9 @@ describe("seed does not skew", () => {
 
   it("does not skew when using times", async () => {
     const schema: IMessageSchema = async () => [
-      ...times(2, [user({ content: "Hello" })]),
-      ...times(2, [user({ content: "Hello" })]),
-      ...times(2, [user({ content: "Hello" })]),
+      times(2, [user({ content: "Hello" })]),
+      times(2, [user({ content: "Hello" })]),
+      times(2, [user({ content: "Hello" })]),
     ];
 
     const result = await generateDataset(schema, {
@@ -203,6 +203,33 @@ describe("seed does not skew", () => {
       output: "/tmp/seed-times-test.jsonl",
     });
     expect(result).toHaveLength(1);
+  });
+
+  it("flattens nested schema arrays produced by helpers", async () => {
+    const schema: IMessageSchema = async () => [
+      [
+        user({ content: "Hello" }),
+        [
+          assistant({ content: "Hi there" }),
+        ],
+      ],
+      times(2, [
+        [
+          user({ content: "Nested" }),
+          assistant({ content: "Response" }),
+        ],
+      ]),
+    ];
+
+    const result = await generateDataset(schema, {
+      model: openai("gpt-4"),
+      count: 1,
+      seed: 7,
+      output: "/tmp/seed-nested-schema-test.jsonl",
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.messages).toHaveLength(6);
   });
 
   it("does not skew when using between", async () => {

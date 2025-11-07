@@ -1,7 +1,9 @@
 import z from "zod";
 import type {
   IAssistantMessageSchema,
+  IMessageSchema,
   IMessageSchemaContext,
+  IMessageSchemaGroup,
   JsonValue,
   ISystemMessageSchema,
   IToolCallResultSchema,
@@ -384,8 +386,9 @@ export function isWeightedOption<T>(
   return typeof option === "object" && option !== null && "value" in option;
 }
 
-export function times<T>(n: number, message: T): T extends any[] ? T : T[] {
-  return Array.from({ length: n }, () => message).flat() as T extends any[]
-    ? T
-    : T[];
+export function times(
+  n: number,
+  message: IMessageSchema | IMessageSchemaGroup
+): IMessageSchema {
+  return async () => Array.from({ length: n }, () => message);
 }
