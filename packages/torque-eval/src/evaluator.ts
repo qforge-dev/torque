@@ -16,6 +16,7 @@ import { loadDataset } from "./loaders";
 import { samplePairedRows, sampleRows } from "./sampling";
 import { buildPairPrompt, buildSinglePrompt } from "./prompts";
 import { pairResponseSchema, scoreResponseSchema } from "./parsers";
+import { processWithConcurrency } from "./concurrency";
 
 function averageScores(samples: ScoreRecord[]): ScoreDatasetResult["averages"] {
   if (samples.length === 0) {
@@ -190,67 +191,71 @@ export async function compareDatasets(
     throw new Error("No matching row IDs found to compare.");
   }
 
+  const comparisons: PairwiseComparison[] = await processWithConcurrency(
+    pairs,
+    options.concurrency ?? 1,
+    async (pair) => {
+      const runDefinitions: Array<{
+        order: PairwiseRunOrder;
+        rowA: typeof pair.rowA;
+        rowB: typeof pair.rowB;
+      }> = [
+        { order: "datasetA-first", rowA: pair.rowA, rowB: pair.rowB },
+        { order: "datasetB-first", rowA: pair.rowB, rowB: pair.rowA },
+      ];
+
+      const runs: PairwiseComparisonRun[] = [];
+
+      for (const definition of runDefinitions) {
+        const prompt = buildPairPrompt(
+          definition.rowA,
+          definition.rowB,
+          options.instructions
+        );
+        const { data: pairResult, response } = await runJudgeModel(
+          options.judgeModel,
+          prompt,
+          pairResponseSchema
+        );
+        const normalizedWinner = normalizeWinnerForOrder(
+          pairResult.winner,
+          definition.order
+        );
+        runs.push({
+          order: definition.order,
+          prompt,
+          response,
+          winner: pairResult.winner,
+          normalizedWinner,
+          rationale: pairResult.rationale,
+        });
+      }
+
+      const normalizedWinners = runs.map((run) => run.normalizedWinner);
+      const finalWinner = deriveAggregateWinner(normalizedWinners);
+      const rationale = summarizeRationale(runs, finalWinner);
+
+      return {
+        id: pair.id,
+        prompt: runs[0]?.prompt ?? "",
+        response: runs[0]?.response ?? "",
+        winner: finalWinner,
+        rationale,
+        rowA: pair.rowA,
+        rowB: pair.rowB,
+        runs,
+      };
+    }
+  );
+
   const totals: CompareDatasetsResult["totals"] = {
     A: 0,
     B: 0,
     tie: 0,
   };
 
-  const comparisons: PairwiseComparison[] = [];
-
-  for (const pair of pairs) {
-    const runDefinitions: Array<{
-      order: PairwiseRunOrder;
-      rowA: typeof pair.rowA;
-      rowB: typeof pair.rowB;
-    }> = [
-      { order: "datasetA-first", rowA: pair.rowA, rowB: pair.rowB },
-      { order: "datasetB-first", rowA: pair.rowB, rowB: pair.rowA },
-    ];
-
-    const runs: PairwiseComparisonRun[] = [];
-
-    for (const definition of runDefinitions) {
-      const prompt = buildPairPrompt(
-        definition.rowA,
-        definition.rowB,
-        options.instructions
-      );
-      const { data: pairResult, response } = await runJudgeModel(
-        options.judgeModel,
-        prompt,
-        pairResponseSchema
-      );
-      const normalizedWinner = normalizeWinnerForOrder(
-        pairResult.winner,
-        definition.order
-      );
-      runs.push({
-        order: definition.order,
-        prompt,
-        response,
-        winner: pairResult.winner,
-        normalizedWinner,
-        rationale: pairResult.rationale,
-      });
-    }
-
-    const normalizedWinners = runs.map((run) => run.normalizedWinner);
-    const finalWinner = deriveAggregateWinner(normalizedWinners);
-    totals[finalWinner] += 1;
-
-    const rationale = summarizeRationale(runs, finalWinner);
-
-    comparisons.push({
-      id: pair.id,
-      prompt: runs[0]?.prompt ?? "",
-      response: runs[0]?.response ?? "",
-      winner: finalWinner,
-      rationale,
-      rowA: pair.rowA,
-      rowB: pair.rowB,
-      runs,
-    });
+  for (const comparison of comparisons) {
+    totals[comparison.winner] += 1;
   }
 
   return {

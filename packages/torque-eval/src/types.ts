@@ -63,6 +63,7 @@ export interface CompareDatasetsOptions {
   seed?: number;
   instructions?: string;
   rowIdExtractor?: RowIdExtractor;
+  concurrency?: number;
 }
 
 export type PairwiseWinner = "A" | "B" | "tie";

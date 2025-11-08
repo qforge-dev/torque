@@ -33,6 +33,7 @@ const pairwise = await compareDatasets({
   sampleSize: 40,
   seed: 7,
   judgeModel: openai("gpt-4o-mini"),
+  concurrency: 5,
 });
 
 // Prefer a custom flow? Provide your own `(prompt) => Promise<string>` instead.
@@ -62,7 +63,7 @@ Returns `{ samples, averages }` where each sample exposes the raw prompt/respons
 
 ### `compareDatasets(options)`
 
-Same options as `scoreDataset`, but you pass both `datasetA` and `datasetB`. Rows are paired by `meta.metadata.id` (falls back to the seed or a custom extractor). Returns `{ comparisons, totals, preferred }` where `totals` contains `{ A, B, tie }`.
+Same options as `scoreDataset`, but you pass both `datasetA` and `datasetB`. Add `concurrency` to limit how many pairwise comparisons run in parallel (defaults to `1`). Rows are paired by `meta.metadata.id` (falls back to the seed or a custom extractor). Returns `{ comparisons, totals, preferred }` where `totals` contains `{ A, B, tie }`.
 
 ## Customizing prompts
 

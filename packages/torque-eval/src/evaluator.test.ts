@@ -292,4 +292,43 @@ describe("compareDatasets", () => {
     expect(comparison!.runs[1]!.normalizedWinner).toBe("B");
     expect(comparison!.winner).toBe("tie");
   });
+
+  it("honors the requested concurrency when running comparisons", async () => {
+    const datasetA = Array.from({ length: 6 }, (_, idx) =>
+      createRow(`row_${idx + 1}`, `Dataset A answer ${idx + 1}`)
+    );
+    const datasetB = Array.from({ length: 6 }, (_, idx) =>
+      createRow(`row_${idx + 1}`, `Dataset B answer ${idx + 1}`)
+    );
+
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const concurrency = 3;
+
+    const mockJudge = new MockLanguageModelV2({
+      doGenerate: async () => {
+        inFlight++;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight--;
+        return buildTextGenerationResult({
+          winner: "A",
+          rationale: "dataset A preferred",
+        });
+      },
+    });
+
+    await compareDatasets({
+      datasetA,
+      datasetB,
+      sampleSize: 6,
+      seed: 11,
+      judgeModel: mockJudge,
+      concurrency,
+    });
+
+    expect(maxInFlight).toBeGreaterThan(1);
+    expect(maxInFlight).toBeLessThanOrEqual(concurrency);
+    expect(inFlight).toBe(0);
+  });
 });
