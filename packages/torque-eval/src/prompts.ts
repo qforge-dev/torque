@@ -1,10 +1,56 @@
 import type { IDatasetRow } from "@qforge/torque";
 
-const DEFAULT_SINGLE_INSTRUCTIONS =
-  "Score the example on 0-10 for quality (overall usefulness), coherence (logical flow), and adherence (whether assistant responses answer the user and stay safe). Penalize hallucinations, violations, or missing steps.";
+const DEFAULT_SINGLE_INSTRUCTIONS = `You are judging synthetic data—the facts can be fabricated. Focus on whether each detail is internally consistent with the conversation, schema, and tool usage.
 
-const DEFAULT_PAIR_INSTRUCTIONS =
-  "Choose the dataset row that better satisfies the user and maintains factual, safe, high-quality responses. Prefer answers that follow the schema intent, stay consistent, and avoid policy issues. Output tie only if both are virtually equal.";
+Schema structure reminder:
+- Schema metadata: high-level scenario intent or constraints.
+- Schema plan: ordered role prompts describing each message's target role/content (role order is enforced; you'll never see assistant/user swapped).
+- Tools: callable functions, their descriptions, and expected arguments/results (argument/result schemas are enforced—shapes will be valid, but meaning might still be nonsensical).
+
+Score each dimension on 0-10.
+
+Quality (usefulness & realism):
+- Messages respect the schema prompts and intent rather than copy them verbatim.
+- Tool calls/results go beyond structural correctness and semantically address the user request.
+- Content feels grounded in the conversation without meta-commentary or contradictions.
+
+Coherence (logical flow):
+- Conversation progresses naturally from prior turns toward the planned future turns.
+- Tool arguments/results stay consistent with what surrounds them.
+
+Adherence (obedience & safety):
+- Assistant satisfies all user/system instructions and policy constraints.
+- Responses stay in-role, avoid unsafe behavior, and do not invent unsupported steps.
+
+If a row violates multiple criteria, the lowest dimension should capture the severity.
+
+Examples:
+- Strong row: assistant follows the schema, calls tools with valid args, and summarizes tool results before replying -> quality 9, coherence 9, adherence 9.
+- Weak row: assistant ignores the tool plan and invents data instead of calling the required search tool -> quality 3, coherence 4, adherence 2.
+
+Example JSON: {"quality":8,"coherence":7,"adherence":8,"notes":"Assistant cites the scraped data but misses a minor instruction."}
+
+Penalize semantically nonsensical tool usage (even if schema-valid), contradictions, broken continuity, or policy issues. Reward rows that honor the DSL plan and produce meaningful synthetic data.`;
+
+const DEFAULT_PAIR_INSTRUCTIONS = `All rows contain synthetic (fabricated) data. Role order and tool schemas are already enforced; judge whether each row makes semantic, contextual sense despite that scaffolding.
+
+Use the same Quality / Coherence / Adherence definitions:
+- Quality checks schema alignment, realistic content, and proper tool usage.
+- Coherence checks conversational flow and consistency of tool inputs/outputs.
+- Adherence checks instruction following, safety, and staying in-role.
+
+Comparison guidance:
+- Prefer rows that track the schema plan, role prompts, and tool schemas.
+- Prefer deterministic tool behavior (args/results match context and schema).
+- Consider severity: hallucinating a tool result is worse than slightly awkward phrasing.
+
+Examples:
+- If Row A uses the mandated booking tool with schema-compliant args while Row B fabricates the outcome, choose "A".
+- If both rows follow every instruction but differ only in tone, return "tie".
+
+Example JSON: {"winner":"B","rationale":"Row B uses the enforced lookup schema to retrieve data relevant to the user question; Row A returns schema-shaped but nonsensical numbers."}
+
+Return "tie" only when both rows are virtually indistinguishable on all three axes.`;
 
 function truncate(text: string, max = 300): string {
   if (text.length <= max) {
