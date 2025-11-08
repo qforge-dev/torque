@@ -3,6 +3,7 @@ import path from "path";
 import { z } from "zod";
 import type {
   IConvertMessageSchemaToDatasetMessageAcc,
+  IDatasetSchema,
   IDatasetRow,
   IMessageSchema,
   IMessageSchemaGroup,
@@ -220,6 +221,16 @@ function mergeRowMetadata(
   return addition;
 }
 
+function buildSchemaColumn(
+  structure: IMessageSchemaStructure
+): IDatasetSchema {
+  return {
+    metadata: { ...(structure.metadata ?? {}) },
+    messages: structure.messages.map(({ message }) => ({ ...message })),
+    tools: structure.tools.map((tool) => ({ ...tool })),
+  };
+}
+
 async function generateDatasetRow(
   conversationSchemaFactory: IMessageSchema,
   model: LanguageModel,
@@ -295,10 +306,12 @@ async function generateDatasetRow(
         : schemaMetadata;
 
     const rowMetadata = mergeRowMetadata(metadata, metadataWithId);
+    const schemaColumn = buildSchemaColumn(structure);
 
     return {
       messages,
       tools,
+      schema: schemaColumn,
       meta: {
         seed: seed ?? 0,
         model:

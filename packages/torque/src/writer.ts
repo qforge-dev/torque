@@ -35,6 +35,7 @@ export class ParquetWriter implements IDatasetWriter {
     const schema = new parquet.ParquetSchema({
       messages: { type: "UTF8" }, // JSON string
       tools: { type: "UTF8" }, // JSON string
+      schema: { type: "UTF8" }, // JSON string
       meta: { type: "UTF8" }, // JSON string
     });
     this.writer = await parquet.ParquetWriter.openFile(schema, this.filePath);
@@ -50,6 +51,7 @@ export class ParquetWriter implements IDatasetWriter {
       await this.writer!.appendRow({
         messages: JSON.stringify(row.messages),
         tools: JSON.stringify(row.tools),
+        schema: JSON.stringify(row.schema),
         meta: JSON.stringify(row.meta),
       });
     });

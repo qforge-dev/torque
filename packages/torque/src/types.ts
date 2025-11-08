@@ -180,9 +180,16 @@ export interface IDatasetTool {
   output: Record<string, any>;
 }
 
+export interface IDatasetSchema {
+  metadata: Record<string, JsonValue>;
+  messages: Array<IMessageSchemaStructureMessage>;
+  tools: IDatasetTool[];
+}
+
 export interface IDatasetRow {
   messages: IDatasetMessage[];
   tools: IDatasetTool[];
+  schema: IDatasetSchema;
   meta: {
     seed?: number;
     model?: string;
