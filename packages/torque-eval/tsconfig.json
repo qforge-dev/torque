@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@qforge/torque-eval": ["./index.ts"]
+    }
+  },
+  "include": [
+    "index.ts",
+    "src"
+  ]
+}
