@@ -64,6 +64,10 @@ export interface CompareDatasetsOptions {
   instructions?: string;
   rowIdExtractor?: RowIdExtractor;
   concurrency?: number;
+  showProgress?: boolean;
+  progressRenderer?: ComparisonRenderer;
+  onProgress?: (progress: ComparisonProgress) => void;
+  outputPath?: string;
 }
 
 export type PairwiseWinner = "A" | "B" | "tie";
@@ -98,4 +102,31 @@ export interface CompareDatasetsResult {
     tie: number;
   };
   preferred: PairwiseWinner;
+}
+
+export interface ComparisonProgress {
+  completed: number;
+  inProgress: number;
+  total: number;
+}
+
+export interface ComparisonRendererConfig {
+  total: number;
+  concurrency: number;
+  seed?: number;
+  instructions?: string;
+}
+
+export interface ComparisonSummary {
+  totals: CompareDatasetsResult["totals"];
+  preferred: PairwiseWinner;
+  outputPath?: string;
+  durationMs: number;
+}
+
+export interface ComparisonRenderer {
+  start(config: ComparisonRendererConfig): void;
+  update(progress: ComparisonProgress): void;
+  finish(summary: ComparisonSummary): void;
+  fail(error: Error): void;
 }

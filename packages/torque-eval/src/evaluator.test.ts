@@ -1,11 +1,17 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import * as parquet from "parquetjs";
 import { MockLanguageModelV2 } from "ai/test";
 import type { IDatasetRow } from "@qforge/torque";
 import { scoreDataset, compareDatasets } from "./evaluator";
+import type {
+  ComparisonProgress,
+  ComparisonRenderer,
+  ComparisonRendererConfig,
+  ComparisonSummary,
+} from "./types";
 
 const baseSchema = {
   metadata: { scenario: "demo" },
@@ -330,5 +336,90 @@ describe("compareDatasets", () => {
     expect(maxInFlight).toBeGreaterThan(1);
     expect(maxInFlight).toBeLessThanOrEqual(concurrency);
     expect(inFlight).toBe(0);
+  });
+
+  it("writes results to disk when outputPath is provided", async () => {
+    const dir = await createTempDir();
+    const outputPath = path.join(dir, "comparison.json");
+
+    const datasetA = [createRow("row_1", "Dataset A answer [A_WINS]")];
+    const datasetB = [createRow("row_1", "Dataset B answer")];
+
+    const result = await compareDatasets({
+      datasetA,
+      datasetB,
+      sampleSize: 1,
+      judgeModel: new MockLanguageModelV2({
+        doGenerate: async (options) => {
+          const promptText = JSON.stringify(options.prompt);
+          const label = findRowLabelForMarker(promptText, "[A_WINS]") ?? "A";
+          return buildTextGenerationResult({
+            winner: label,
+            rationale: "marker hints at preferred row",
+          });
+        },
+      }),
+      outputPath,
+    });
+
+    const persisted = JSON.parse(await readFile(outputPath, "utf-8"));
+    expect(persisted.totals).toEqual(result.totals);
+    expect(persisted.preferred).toEqual("A");
+  });
+
+  it("supports custom progress renderers and callbacks", async () => {
+    const datasetA = [
+      createRow("row_1", "Dataset A answer 1"),
+      createRow("row_2", "Dataset A answer 2"),
+    ];
+    const datasetB = [
+      createRow("row_1", "Dataset B answer 1"),
+      createRow("row_2", "Dataset B answer 2"),
+    ];
+
+    class TestRenderer implements ComparisonRenderer {
+      public startCalled = false;
+      public finishCalled = false;
+      public failCalled = false;
+      public progressSnapshots: ComparisonProgress[] = [];
+
+      start(_config: ComparisonRendererConfig): void {
+        this.startCalled = true;
+      }
+      update(progress: ComparisonProgress): void {
+        this.progressSnapshots.push(progress);
+      }
+      finish(_summary: ComparisonSummary): void {
+        this.finishCalled = true;
+      }
+      fail(_error: Error): void {
+        this.failCalled = true;
+      }
+    }
+
+    const renderer = new TestRenderer();
+    const callbackSnapshots: ComparisonProgress[] = [];
+
+    await compareDatasets({
+      datasetA,
+      datasetB,
+      sampleSize: 2,
+      judgeModel: new MockLanguageModelV2({
+        doGenerate: async () =>
+          buildTextGenerationResult({
+            winner: "A",
+            rationale: "deterministic",
+          }),
+      }),
+      progressRenderer: renderer,
+      onProgress: (progress) => callbackSnapshots.push(progress),
+    });
+
+    expect(renderer.startCalled).toBe(true);
+    expect(renderer.finishCalled).toBe(true);
+    expect(renderer.failCalled).toBe(false);
+    expect(renderer.progressSnapshots.at(-1)?.completed).toBe(2);
+    expect(callbackSnapshots.length).toBeGreaterThan(0);
+    expect(callbackSnapshots.at(-1)?.completed).toBe(2);
   });
 });

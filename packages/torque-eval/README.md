@@ -13,7 +13,11 @@ bun add @qforge/torque ai
 ## Quick Start
 
 ```ts
-import { scoreDataset, compareDatasets } from "@qforge/torque-eval";
+import {
+  scoreDataset,
+  compareDatasets,
+  PairwiseEvaluationRenderer,
+} from "@qforge/torque-eval";
 import { createOpenAI } from "@ai-sdk/openai";
 
 const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY! });
@@ -27,6 +31,7 @@ const absolute = await scoreDataset({
 });
 
 // Pairwise comparison
+const renderer = new PairwiseEvaluationRenderer();
 const pairwise = await compareDatasets({
   datasetA: "data/model-a-run.jsonl",
   datasetB: "data/model-b-run.jsonl",
@@ -34,6 +39,8 @@ const pairwise = await compareDatasets({
   seed: 7,
   judgeModel: openai("gpt-4o-mini"),
   concurrency: 5,
+  progressRenderer: renderer,
+  outputPath: "data/pairwise-report.json",
 });
 
 // Prefer a custom flow? Provide your own `(prompt) => Promise<string>` instead.
@@ -64,6 +71,12 @@ Returns `{ samples, averages }` where each sample exposes the raw prompt/respons
 ### `compareDatasets(options)`
 
 Same options as `scoreDataset`, but you pass both `datasetA` and `datasetB`. Add `concurrency` to limit how many pairwise comparisons run in parallel (defaults to `1`). Rows are paired by `meta.metadata.id` (falls back to the seed or a custom extractor). Returns `{ comparisons, totals, preferred }` where `totals` contains `{ A, B, tie }`.
+
+Optional helpers:
+
+- `showProgress: true` or a custom `progressRenderer` (e.g., `PairwiseEvaluationRenderer`) to render a live dashboard and celebratory summary.
+- `onProgress(progress)` for custom integrations/metrics.
+- `outputPath` to persist the entire result object as prettified JSON.
 
 ## Customizing prompts
 

@@ -3,3 +3,4 @@ export * from "./src/loaders";
 export * from "./src/sampling";
 export * from "./src/prompts";
 export * from "./src/evaluator";
+export { PairwiseEvaluationRenderer } from "./src/evaluation-renderer";

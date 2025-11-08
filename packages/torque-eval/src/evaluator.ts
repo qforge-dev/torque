@@ -1,8 +1,12 @@
+import fsp from "node:fs/promises";
+import path from "node:path";
 import { generateObject } from "ai";
 import { z } from "zod";
 import type {
   CompareDatasetsOptions,
   CompareDatasetsResult,
+  ComparisonProgress,
+  ComparisonRenderer,
   PairwiseComparison,
   PairwiseComparisonRun,
   PairwiseRunOrder,
@@ -17,6 +21,7 @@ import { samplePairedRows, sampleRows } from "./sampling";
 import { buildPairPrompt, buildSinglePrompt } from "./prompts";
 import { pairResponseSchema, scoreResponseSchema } from "./parsers";
 import { processWithConcurrency } from "./concurrency";
+import { PairwiseEvaluationRenderer } from "./evaluation-renderer";
 
 function averageScores(samples: ScoreRecord[]): ScoreDatasetResult["averages"] {
   if (samples.length === 0) {
@@ -170,6 +175,8 @@ function summarizeRationale(
 export async function compareDatasets(
   options: CompareDatasetsOptions
 ): Promise<CompareDatasetsResult> {
+  const evaluationStart = Date.now();
+
   const [datasetA, datasetB] = await Promise.all([
     loadDataset(options.datasetA),
     loadDataset(options.datasetB),
@@ -191,76 +198,147 @@ export async function compareDatasets(
     throw new Error("No matching row IDs found to compare.");
   }
 
-  const comparisons: PairwiseComparison[] = await processWithConcurrency(
-    pairs,
-    options.concurrency ?? 1,
-    async (pair) => {
-      const runDefinitions: Array<{
-        order: PairwiseRunOrder;
-        rowA: typeof pair.rowA;
-        rowB: typeof pair.rowB;
-      }> = [
-        { order: "datasetA-first", rowA: pair.rowA, rowB: pair.rowB },
-        { order: "datasetB-first", rowA: pair.rowB, rowB: pair.rowA },
-      ];
+  const renderer = resolveRenderer(options);
+  const totalPairs = pairs.length;
 
-      const runs: PairwiseComparisonRun[] = [];
+  renderer?.start({
+    total: totalPairs,
+    concurrency: options.concurrency ?? 1,
+    seed: options.seed,
+    instructions: options.instructions,
+  });
 
-      for (const definition of runDefinitions) {
-        const prompt = buildPairPrompt(
-          definition.rowA,
-          definition.rowB,
-          options.instructions
-        );
-        const { data: pairResult, response } = await runJudgeModel(
-          options.judgeModel,
-          prompt,
-          pairResponseSchema
-        );
-        const normalizedWinner = normalizeWinnerForOrder(
-          pairResult.winner,
-          definition.order
-        );
-        runs.push({
-          order: definition.order,
-          prompt,
-          response,
-          winner: pairResult.winner,
-          normalizedWinner,
-          rationale: pairResult.rationale,
-        });
+  const notifyProgress = (progress: ComparisonProgress) => {
+    renderer?.update(progress);
+    options.onProgress?.(progress);
+  };
+
+  notifyProgress({ completed: 0, inProgress: 0, total: totalPairs });
+
+  try {
+    const comparisons: PairwiseComparison[] = await processWithConcurrency(
+      pairs,
+      options.concurrency ?? 1,
+      async (pair) => {
+        const runDefinitions: Array<{
+          order: PairwiseRunOrder;
+          rowA: typeof pair.rowA;
+          rowB: typeof pair.rowB;
+        }> = [
+          { order: "datasetA-first", rowA: pair.rowA, rowB: pair.rowB },
+          { order: "datasetB-first", rowA: pair.rowB, rowB: pair.rowA },
+        ];
+
+        const runs: PairwiseComparisonRun[] = [];
+
+        for (const definition of runDefinitions) {
+          const prompt = buildPairPrompt(
+            definition.rowA,
+            definition.rowB,
+            options.instructions
+          );
+          const { data: pairResult, response } = await runJudgeModel(
+            options.judgeModel,
+            prompt,
+            pairResponseSchema
+          );
+          const normalizedWinner = normalizeWinnerForOrder(
+            pairResult.winner,
+            definition.order
+          );
+          runs.push({
+            order: definition.order,
+            prompt,
+            response,
+            winner: pairResult.winner,
+            normalizedWinner,
+            rationale: pairResult.rationale,
+          });
+        }
+
+        const normalizedWinners = runs.map((run) => run.normalizedWinner);
+        const finalWinner = deriveAggregateWinner(normalizedWinners);
+        const rationale = summarizeRationale(runs, finalWinner);
+
+        return {
+          id: pair.id,
+          prompt: runs[0]?.prompt ?? "",
+          response: runs[0]?.response ?? "",
+          winner: finalWinner,
+          rationale,
+          rowA: pair.rowA,
+          rowB: pair.rowB,
+          runs,
+        };
+      },
+      {
+        onProgress: (completed, inProgress, total) => {
+          notifyProgress({ completed, inProgress, total });
+        },
       }
+    );
 
-      const normalizedWinners = runs.map((run) => run.normalizedWinner);
-      const finalWinner = deriveAggregateWinner(normalizedWinners);
-      const rationale = summarizeRationale(runs, finalWinner);
+    const totals: CompareDatasetsResult["totals"] = {
+      A: 0,
+      B: 0,
+      tie: 0,
+    };
 
-      return {
-        id: pair.id,
-        prompt: runs[0]?.prompt ?? "",
-        response: runs[0]?.response ?? "",
-        winner: finalWinner,
-        rationale,
-        rowA: pair.rowA,
-        rowB: pair.rowB,
-        runs,
-      };
+    for (const comparison of comparisons) {
+      totals[comparison.winner] += 1;
     }
-  );
 
-  const totals: CompareDatasetsResult["totals"] = {
-    A: 0,
-    B: 0,
-    tie: 0,
-  };
+    const result: CompareDatasetsResult = {
+      comparisons,
+      totals,
+      preferred: derivePreferredWinner(totals),
+    };
 
-  for (const comparison of comparisons) {
-    totals[comparison.winner] += 1;
+    let savedPath: string | undefined;
+    if (options.outputPath) {
+      savedPath = await persistResultToFile(result, options.outputPath);
+    }
+
+    renderer?.finish({
+      totals: result.totals,
+      preferred: result.preferred,
+      outputPath: savedPath,
+      durationMs: Date.now() - evaluationStart,
+    });
+
+    return result;
+  } catch (error) {
+    if (error instanceof Error) {
+      renderer?.fail(error);
+    }
+    throw error;
   }
+}
 
-  return {
-    comparisons,
-    totals,
-    preferred: derivePreferredWinner(totals),
-  };
+function resolveRenderer(
+  options: CompareDatasetsOptions
+): ComparisonRenderer | undefined {
+  if (options.progressRenderer) {
+    return options.progressRenderer;
+  }
+  if (options.showProgress) {
+    return new PairwiseEvaluationRenderer();
+  }
+  return undefined;
+}
+
+async function persistResultToFile(
+  result: CompareDatasetsResult,
+  requestedPath: string
+): Promise<string> {
+  const resolvedPath = path.isAbsolute(requestedPath)
+    ? requestedPath
+    : path.resolve(requestedPath);
+  await fsp.mkdir(path.dirname(resolvedPath), { recursive: true });
+  await fsp.writeFile(
+    resolvedPath,
+    JSON.stringify(result, null, 2),
+    "utf-8"
+  );
+  return resolvedPath;
 }

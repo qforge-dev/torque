@@ -1,4 +1,6 @@
+import path from "node:path";
 import { compareDatasets } from "./src/evaluator";
+import { PairwiseEvaluationRenderer } from "./src/evaluation-renderer";
 import { createOpenAI } from "@ai-sdk/openai";
 
 const apiKey = process.env.OPENAI_API_KEY;
@@ -15,12 +17,24 @@ if (!apiKey) {
 
 const openai = createOpenAI({ apiKey });
 
+const renderer = new PairwiseEvaluationRenderer();
+const outputPath = path.join(process.cwd(), "pairwise-results.json");
+
 const pairwise = await compareDatasets({
   datasetA: "/Users/michalwarda/Projects/torque/data/ds1.jsonl",
   datasetB: "/Users/michalwarda/Projects/torque/data/ds2.jsonl",
   sampleSize: 5,
   seed: 7,
   judgeModel: openai("gpt-5-mini"),
+  concurrency: 5,
+  progressRenderer: renderer,
+  outputPath,
 });
 
-console.dir(pairwise, { depth: null });
+console.log();
+console.log(
+  `Preferred outcome: ${
+    pairwise.preferred === "tie" ? "tie" : `dataset ${pairwise.preferred}`
+  }`
+);
+console.log(`Detailed comparison saved to ${outputPath}`);
