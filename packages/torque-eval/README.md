@@ -40,7 +40,7 @@ const pairwise = await compareDatasets({
 
 Both helpers automatically:
 
-- Load `.json` or `.jsonl` Torque exports (or accept an in-memory `IDatasetRow[]`)
+- Load `.json`, `.jsonl`, or `.parquet` Torque exports (or accept an in-memory `IDatasetRow[]`)
 - Sample the requested number of rows with an optional deterministic seed
 - Build a rich prompt that includes schema metadata and the message transcript
 - Parse the judge JSON response and aggregate totals

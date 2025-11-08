@@ -1,5 +1,6 @@
 import fsp from "node:fs/promises";
 import path from "node:path";
+import * as parquet from "parquetjs";
 import type { IDatasetRow } from "@qforge/torque";
 import type { DatasetSource } from "./types";
 
@@ -18,10 +19,10 @@ export async function loadDataset(
   }
 
   const filePath = source;
-  const fileContents = await fsp.readFile(filePath, "utf-8");
   const extension = path.extname(filePath).toLowerCase();
 
   if (extension === ".jsonl") {
+    const fileContents = await fsp.readFile(filePath, "utf-8");
     return fileContents
       .split(/\r?\n/g)
       .map((line) => line.trim())
@@ -40,6 +41,7 @@ export async function loadDataset(
   }
 
   if (extension === ".json" || extension === ".ndjson") {
+    const fileContents = await fsp.readFile(filePath, "utf-8");
     try {
       const data = JSON.parse(fileContents);
       if (Array.isArray(data)) {
@@ -58,7 +60,79 @@ export async function loadDataset(
     }
   }
 
+  if (extension === ".parquet") {
+    const reader = await parquet.ParquetReader.openFile(filePath);
+    try {
+      const cursor = reader.getCursor();
+      const rows: IDatasetRow[] = [];
+      let index = 0;
+      while (true) {
+        const record = (await cursor.next()) as Record<string, unknown> | null;
+        if (!record) {
+          break;
+        }
+        index += 1;
+        rows.push({
+          messages: parseJsonColumn<IDatasetRow["messages"]>(
+            record.messages,
+            "messages",
+            filePath,
+            index
+          ),
+          tools: parseJsonColumn<IDatasetRow["tools"]>(
+            record.tools,
+            "tools",
+            filePath,
+            index
+          ),
+          schema: parseJsonColumn<IDatasetRow["schema"]>(
+            record.schema,
+            "schema",
+            filePath,
+            index
+          ),
+          meta: parseJsonColumn<IDatasetRow["meta"]>(
+            record.meta,
+            "meta",
+            filePath,
+            index
+          ),
+        });
+      }
+      return rows;
+    } catch (error) {
+      throw new Error(
+        `Failed to read Parquet dataset at ${filePath}: ${(error as Error).message}`
+      );
+    } finally {
+      await reader.close();
+    }
+  }
+
   throw new Error(
-    `Unsupported dataset extension "${extension}". Use JSON or JSONL files.`
+    `Unsupported dataset extension "${extension}". Use JSON, JSONL, or Parquet files.`
   );
+}
+
+function parseJsonColumn<T>(
+  value: unknown,
+  column: string,
+  filePath: string,
+  index: number
+): T {
+  if (typeof value !== "string") {
+    throw new Error(
+      `Unexpected ${column} column type in ${filePath} at row ${index}. Expected JSON string.`
+    );
+  }
+
+  try {
+    return JSON.parse(value) as T;
+  } catch (error) {
+    throw new Error(
+      `Failed to parse ${column} JSON in ${filePath} at row ${index}: ${
+        (error as Error).message
+      }`
+    );
+  }
 }
