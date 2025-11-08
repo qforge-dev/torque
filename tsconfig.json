@@ -15,7 +15,7 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@qforge/torque": ["./index.ts"]
+      "@qforge/torque": ["./packages/torque/index.ts"]
     },
 
     // Best practices

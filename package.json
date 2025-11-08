@@ -1,71 +1,27 @@
 {
-  "name": "@qforge/torque",
-  "version": "0.2.0",
-  "description": "Like React, but for datasets - A declarative, typesafe DSL for building LLM training datasets",
+  "name": "torque",
+  "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
-  "keywords": [
-    "llm",
-    "dataset",
-    "training-data",
-    "fine-tuning",
-    "ai",
-    "machine-learning",
-    "declarative",
-    "dsl",
-    "typescript",
-    "zod"
-  ],
-  "author": "",
   "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun run --filter @qforge/torque build",
+    "clean": "bun run --filter @qforge/torque clean",
+    "test": "bun test",
+    "generate:templates": "bun run scripts/generate-stackblitz-templates.ts",
+    "prepublishOnly": "bun run --filter @qforge/torque prepublishOnly"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/qforge-dev/torque.git",
-    "directory": "builder"
+    "url": "git+https://github.com/qforge-dev/torque.git"
   },
   "bugs": {
     "url": "https://github.com/qforge-dev/torque/issues"
   },
-  "homepage": "https://github.com/qforge-dev/torque/tree/main/builder#readme",
-  "peerDependencies": {
-    "ai": "^5.0.0",
-    "zod": "^4.0.0"
-  },
-  "dependencies": {
-    "@faker-js/faker": "^9.3.0",
-    "parquetjs": "^0.11.2",
-    "tiktoken": "^1.0.22",
-    "zod-from-json-schema": "0.5.1"
-  },
-  "devDependencies": {
-    "@ai-sdk/openai": "^2.0.58",
-    "@types/bun": "latest",
-    "@types/parquetjs": "^0.10.6",
-    "bun-types": "latest",
-    "typescript": "^5.0.0"
-  },
+  "homepage": "https://github.com/qforge-dev/torque#readme",
   "engines": {
     "node": ">=18.0.0"
-  },
-  "scripts": {
-    "build": "bun run clean && bun run compile",
-    "clean": "rm -rf dist",
-    "compile": "tsc -p tsconfig.build.json",
-    "generate:templates": "bun run scripts/generate-stackblitz-templates.ts",
-    "prebuild": "bun run generate:templates",
-    "prepublishOnly": "bun run build",
-    "prepack": "bun run build"
   }
 }

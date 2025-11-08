@@ -3,6 +3,10 @@
   "workspaces": {
     "": {
       "name": "@qforge/torque",
+    },
+    "packages/torque": {
+      "name": "@qforge/torque",
+      "version": "0.2.0",
       "dependencies": {
         "@faker-js/faker": "^9.3.0",
         "parquetjs": "^0.11.2",
@@ -34,6 +38,8 @@
     "@faker-js/faker": ["@faker-js/faker@9.9.0", "", {}, "sha512-OEl393iCOoo/z8bMezRlJu+GlRGlsKbUAN7jKB6LhnKoqKve5DXRpalbItIIcwnCjs1k/FOPjFzcA6Qn+H+YbA=="],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.0", "", {}, "sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg=="],
+
+    "@qforge/torque": ["@qforge/torque@workspace:packages/torque"],
 
     "@standard-schema/spec": ["@standard-schema/spec@1.0.0", "", {}, "sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA=="],
 

@@ -23,18 +23,12 @@
   },
   "include": [
     "index.ts",
-    "dataset.ts",
-    "schema.ts",
-    "types.ts",
-    "generators.ts",
-    "utils.ts",
-    "ai.ts",
-    "cli-renderer.ts"
+    "src/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "examples"
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts"
   ]
 }
-

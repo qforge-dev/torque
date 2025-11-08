@@ -21,9 +21,11 @@ import {
   existsSync,
 } from "fs";
 import { join, basename } from "path";
+import { fileURLToPath } from "url";
 
-const EXAMPLES_DIR = join(process.cwd(), "examples");
-const TEMPLATES_DIR = join(process.cwd(), "stackblitz-templates");
+const PROJECT_ROOT = fileURLToPath(new URL("..", import.meta.url));
+const EXAMPLES_DIR = join(PROJECT_ROOT, "examples");
+const TEMPLATES_DIR = join(PROJECT_ROOT, "stackblitz-templates");
 const TEMPLATE_SOURCE_DIR = join(TEMPLATES_DIR, "_templates");
 
 interface ExampleMetadata {
