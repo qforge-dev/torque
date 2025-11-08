@@ -67,6 +67,17 @@ export interface CompareDatasetsOptions {
 
 export type PairwiseWinner = "A" | "B" | "tie";
 
+export type PairwiseRunOrder = "datasetA-first" | "datasetB-first";
+
+export interface PairwiseComparisonRun {
+  order: PairwiseRunOrder;
+  prompt: string;
+  response: string;
+  winner: PairwiseWinner;
+  normalizedWinner: PairwiseWinner;
+  rationale: string;
+}
+
 export interface PairwiseComparison {
   id: string;
   prompt: string;
@@ -75,6 +86,7 @@ export interface PairwiseComparison {
   rationale: string;
   rowA: IDatasetRow;
   rowB: IDatasetRow;
+  runs: PairwiseComparisonRun[];
 }
 
 export interface CompareDatasetsResult {

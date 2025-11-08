@@ -4,6 +4,8 @@ import type {
   CompareDatasetsOptions,
   CompareDatasetsResult,
   PairwiseComparison,
+  PairwiseComparisonRun,
+  PairwiseRunOrder,
   PairwiseWinner,
   ScoreDatasetOptions,
   ScoreDatasetResult,
@@ -110,6 +112,60 @@ function derivePreferredWinner(totals: {
   return "tie";
 }
 
+function normalizeWinnerForOrder(
+  winner: PairwiseWinner,
+  order: PairwiseRunOrder
+): PairwiseWinner {
+  if (winner === "tie") return "tie";
+  if (order === "datasetA-first") {
+    return winner;
+  }
+  return winner === "A" ? "B" : "A";
+}
+
+function deriveAggregateWinner(winners: PairwiseWinner[]): PairwiseWinner {
+  if (winners.length === 0) return "tie";
+  if (winners.some((winner) => winner === "tie")) {
+    return "tie";
+  }
+  const first = winners[0];
+  return winners.every((winner) => winner === first) ? first! : "tie";
+}
+
+function describeOrder(order: PairwiseRunOrder): string {
+  return order === "datasetA-first"
+    ? "datasetA row labeled as Row A"
+    : "datasetB row labeled as Row A";
+}
+
+function summarizeRationale(
+  runs: PairwiseComparisonRun[],
+  overallWinner: PairwiseWinner
+): string {
+  const runSummaries = runs
+    .map((run, index) => {
+      const baseRationale =
+        run.rationale && run.rationale.trim().length > 0
+          ? run.rationale
+          : "No rationale provided.";
+      const normalized =
+        run.normalizedWinner === "tie"
+          ? "tie"
+          : `dataset ${run.normalizedWinner}`;
+      return `Run ${index + 1} (${describeOrder(run.order)}): model returned "${
+        run.winner
+      }" (${normalized} after normalization). ${baseRationale}`;
+    })
+    .join("\n\n");
+
+  const summary =
+    overallWinner === "tie"
+      ? "Overall result: tie (no row won both orderings)."
+      : `Overall result: dataset ${overallWinner} won both orderings.`;
+
+  return `${runSummaries}\n\n${summary}`.trim();
+}
+
 export async function compareDatasets(
   options: CompareDatasetsOptions
 ): Promise<CompareDatasetsResult> {
@@ -143,22 +199,57 @@ export async function compareDatasets(
   const comparisons: PairwiseComparison[] = [];
 
   for (const pair of pairs) {
-    const prompt = buildPairPrompt(pair.rowA, pair.rowB, options.instructions);
-    const { data: pairResult, response } = await runJudgeModel(
-      options.judgeModel,
-      prompt,
-      pairResponseSchema
-    );
-    const { winner, rationale } = pairResult;
-    totals[winner] += 1;
+    const runDefinitions: Array<{
+      order: PairwiseRunOrder;
+      rowA: typeof pair.rowA;
+      rowB: typeof pair.rowB;
+    }> = [
+      { order: "datasetA-first", rowA: pair.rowA, rowB: pair.rowB },
+      { order: "datasetB-first", rowA: pair.rowB, rowB: pair.rowA },
+    ];
+
+    const runs: PairwiseComparisonRun[] = [];
+
+    for (const definition of runDefinitions) {
+      const prompt = buildPairPrompt(
+        definition.rowA,
+        definition.rowB,
+        options.instructions
+      );
+      const { data: pairResult, response } = await runJudgeModel(
+        options.judgeModel,
+        prompt,
+        pairResponseSchema
+      );
+      const normalizedWinner = normalizeWinnerForOrder(
+        pairResult.winner,
+        definition.order
+      );
+      runs.push({
+        order: definition.order,
+        prompt,
+        response,
+        winner: pairResult.winner,
+        normalizedWinner,
+        rationale: pairResult.rationale,
+      });
+    }
+
+    const normalizedWinners = runs.map((run) => run.normalizedWinner);
+    const finalWinner = deriveAggregateWinner(normalizedWinners);
+    totals[finalWinner] += 1;
+
+    const rationale = summarizeRationale(runs, finalWinner);
+
     comparisons.push({
       id: pair.id,
-      prompt,
-      response,
-      winner,
+      prompt: runs[0]?.prompt ?? "",
+      response: runs[0]?.response ?? "",
+      winner: finalWinner,
       rationale,
       rowA: pair.rowA,
       rowB: pair.rowB,
+      runs,
     });
   }
 

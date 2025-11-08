@@ -20,7 +20,7 @@ const pairwise = await compareDatasets({
   datasetB: "/Users/michalwarda/Projects/torque/data/ds2.jsonl",
   sampleSize: 5,
   seed: 7,
-  judgeModel: openai("gpt-4.1-mini"),
+  judgeModel: openai("gpt-5-mini"),
 });
 
 console.dir(pairwise, { depth: null });

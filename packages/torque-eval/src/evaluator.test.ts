@@ -78,6 +78,21 @@ function buildTextGenerationResult(payload: unknown) {
   };
 }
 
+function findRowLabelForMarker(
+  promptText: string,
+  marker: string
+): "A" | "B" | null {
+  const markerIndex = promptText.indexOf(marker);
+  if (markerIndex === -1) {
+    return null;
+  }
+  const rowBIndex = promptText.indexOf("ROW B MESSAGES:");
+  if (rowBIndex === -1) {
+    return null;
+  }
+  return markerIndex > rowBIndex ? "B" : "A";
+}
+
 describe("scoreDataset", () => {
   it("samples rows and aggregates judge scores", async () => {
     const dataset = [
@@ -117,7 +132,7 @@ describe("compareDatasets", () => {
   it("pairs rows by id and tallies winners", async () => {
     const datasetA = [
       createRow("row_1", "Version A answer 1"),
-      createRow("row_2", "Version A answer 2"),
+      createRow("row_2", "Version A answer 2 [A_WINS]"),
       createRow("row_3", "Version A answer 3"),
     ];
 
@@ -130,16 +145,24 @@ describe("compareDatasets", () => {
     const mockJudge = new MockLanguageModelV2({
       doGenerate: async (options) => {
         const promptText = JSON.stringify(options.prompt);
-        if (promptText.includes("[B_WINS]")) {
-          return buildTextGenerationResult({
-            winner: "B",
-            rationale: "marker indicates B",
-          });
-        }
         if (promptText.includes("[TIE]")) {
           return buildTextGenerationResult({
             winner: "tie",
             rationale: "tie marker",
+          });
+        }
+        if (promptText.includes("[B_WINS]")) {
+          const label = findRowLabelForMarker(promptText, "[B_WINS]") ?? "B";
+          return buildTextGenerationResult({
+            winner: label,
+            rationale: "marker indicates dataset B row",
+          });
+        }
+        if (promptText.includes("[A_WINS]")) {
+          const label = findRowLabelForMarker(promptText, "[A_WINS]") ?? "A";
+          return buildTextGenerationResult({
+            winner: label,
+            rationale: "marker indicates dataset A row",
           });
         }
         return buildTextGenerationResult({
@@ -158,10 +181,35 @@ describe("compareDatasets", () => {
     });
 
     expect(result.comparisons.length).toBe(3);
-    expect(result.totals.A).toBe(1);
-    expect(result.totals.B).toBe(1);
-    expect(result.totals.tie).toBe(1);
+    expect(result.totals).toEqual({ A: 1, B: 1, tie: 1 });
     expect(result.preferred).toBe("tie");
+
+    const comparisonMap = Object.fromEntries(
+      result.comparisons.map((comparison) => [comparison.id, comparison])
+    );
+
+    const row1 = comparisonMap["row_1"];
+    expect(row1).toBeDefined();
+    const row1Runs = row1!.runs;
+    expect(row1Runs).toHaveLength(2);
+    expect(row1Runs.map((run) => run.order)).toEqual([
+      "datasetA-first",
+      "datasetB-first",
+    ]);
+    expect(row1Runs.map((run) => run.normalizedWinner)).toEqual(["B", "B"]);
+    expect(row1!.winner).toBe("B");
+
+    const row2 = comparisonMap["row_2"];
+    expect(row2).toBeDefined();
+    expect(row2!.runs.map((run) => run.normalizedWinner)).toEqual(["A", "A"]);
+    expect(row2!.winner).toBe("A");
+
+    const row3 = comparisonMap["row_3"];
+    expect(row3).toBeDefined();
+    expect(row3!.runs.every((run) => run.normalizedWinner === "tie")).toBe(
+      true
+    );
+    expect(row3!.winner).toBe("tie");
   });
 
   it("supports mixing JSON and Parquet sources", async () => {
@@ -182,7 +230,7 @@ describe("compareDatasets", () => {
       parquetPath
     );
 
-    const altRow = createRow("row_1", "Version B answer");
+    const altRow = createRow("row_1", "Version B answer [PARQUET_WIN]");
     await writer.appendRow({
       messages: JSON.stringify(altRow.messages),
       tools: JSON.stringify(altRow.tools),
@@ -196,16 +244,52 @@ describe("compareDatasets", () => {
       datasetB: parquetPath,
       sampleSize: 1,
       judgeModel: new MockLanguageModelV2({
-        doGenerate: async () =>
-          buildTextGenerationResult({
-            winner: "B",
+        doGenerate: async (options) => {
+          const promptText = JSON.stringify(options.prompt);
+          const label =
+            findRowLabelForMarker(promptText, "[PARQUET_WIN]") ?? "B";
+          return buildTextGenerationResult({
+            winner: label,
             rationale: "parquet wins",
-          }),
+          });
+        },
       }),
     });
 
     expect(result.comparisons).toHaveLength(1);
-    expect(result.totals.B).toBe(1);
+    expect(result.totals).toEqual({ A: 0, B: 1, tie: 0 });
     expect(result.preferred).toBe("B");
+    expect(result.comparisons[0]?.runs).toHaveLength(2);
+  });
+
+  it("treats split decisions as ties", async () => {
+    const datasetA = [createRow("row_1", "Dataset A content")];
+    const datasetB = [createRow("row_1", "Dataset B content")];
+
+    const mockJudge = new MockLanguageModelV2({
+      doGenerate: async () =>
+        buildTextGenerationResult({
+          winner: "A",
+          rationale: "always pick Row A",
+        }),
+    });
+
+    const result = await compareDatasets({
+      datasetA,
+      datasetB,
+      sampleSize: 1,
+      seed: 99,
+      judgeModel: mockJudge,
+    });
+
+    expect(result.totals.tie).toBe(1);
+    expect(result.totals.A).toBe(0);
+    expect(result.totals.B).toBe(0);
+    const comparison = result.comparisons[0];
+    expect(comparison).toBeDefined();
+    expect(comparison!.runs).toHaveLength(2);
+    expect(comparison!.runs[0]!.normalizedWinner).toBe("A");
+    expect(comparison!.runs[1]!.normalizedWinner).toBe("B");
+    expect(comparison!.winner).toBe("tie");
   });
 });
