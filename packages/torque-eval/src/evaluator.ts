@@ -1,4 +1,5 @@
-import { generateText } from "ai";
+import { generateObject } from "ai";
+import { z } from "zod";
 import type {
   CompareDatasetsOptions,
   CompareDatasetsResult,
@@ -12,7 +13,7 @@ import type {
 import { loadDataset } from "./loaders";
 import { samplePairedRows, sampleRows } from "./sampling";
 import { buildPairPrompt, buildSinglePrompt } from "./prompts";
-import { parsePairResponse, parseScoreResponse } from "./parsers";
+import { pairResponseSchema, scoreResponseSchema } from "./parsers";
 
 function averageScores(samples: ScoreRecord[]): ScoreDatasetResult["averages"] {
   if (samples.length === 0) {
@@ -37,24 +38,21 @@ function averageScores(samples: ScoreRecord[]): ScoreDatasetResult["averages"] {
   };
 }
 
-type JudgeFunction = (prompt: string) => Promise<string>;
-
-function isFunctionJudgeModel(judgeModel: JudgeModel): judgeModel is JudgeFunction {
-  return typeof judgeModel === "function";
-}
-
-async function runJudgeModel(
+async function runJudgeModel<T>(
   judgeModel: JudgeModel,
-  prompt: string
-): Promise<string> {
-  if (isFunctionJudgeModel(judgeModel)) {
-    return judgeModel(prompt);
-  }
-  const result = await generateText({
+  prompt: string,
+  schema: z.ZodType<T>
+): Promise<{ data: T; response: string }> {
+  const result = await generateObject({
     model: judgeModel,
     prompt,
+    schema,
   });
-  return result.text;
+
+  return {
+    data: result.object,
+    response: JSON.stringify(result.object, null, 2),
+  };
 }
 
 export async function scoreDataset(
@@ -79,8 +77,11 @@ export async function scoreDataset(
   const samples: ScoreRecord[] = [];
   for (const item of sample) {
     const prompt = buildSinglePrompt(item.row, options.instructions);
-    const response = await runJudgeModel(options.judgeModel, prompt);
-    const scores = parseScoreResponse(response);
+    const { data: scores, response } = await runJudgeModel(
+      options.judgeModel,
+      prompt,
+      scoreResponseSchema
+    );
     samples.push({
       id: item.id,
       prompt,
@@ -142,13 +143,13 @@ export async function compareDatasets(
   const comparisons: PairwiseComparison[] = [];
 
   for (const pair of pairs) {
-    const prompt = buildPairPrompt(
-      pair.rowA,
-      pair.rowB,
-      options.instructions
+    const prompt = buildPairPrompt(pair.rowA, pair.rowB, options.instructions);
+    const { data: pairResult, response } = await runJudgeModel(
+      options.judgeModel,
+      prompt,
+      pairResponseSchema
     );
-    const response = await runJudgeModel(options.judgeModel, prompt);
-    const { winner, rationale } = parsePairResponse(response);
+    const { winner, rationale } = pairResult;
     totals[winner] += 1;
     comparisons.push({
       id: pair.id,

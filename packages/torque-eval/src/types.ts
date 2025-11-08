@@ -3,11 +3,12 @@ import type { IDatasetRow } from "@qforge/torque";
 
 export type DatasetSource = string | IDatasetRow[];
 
-export type JudgeModel =
-  | ((prompt: string) => Promise<string>)
-  | LanguageModel;
+export type JudgeModel = LanguageModel;
 
-export type RowIdExtractor = (row: IDatasetRow, index: number) => string | undefined;
+export type RowIdExtractor = (
+  row: IDatasetRow,
+  index: number
+) => string | undefined;
 
 export interface SampledRow {
   id: string;
