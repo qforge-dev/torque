@@ -70,11 +70,11 @@ Returns `{ samples, averages }` where each sample exposes the raw prompt/respons
 
 ### `compareDatasets(options)`
 
-Same options as `scoreDataset`, but you pass both `datasetA` and `datasetB`. Add `concurrency` to limit how many pairwise comparisons run in parallel (defaults to `1`). Rows are paired by `meta.metadata.id` (falls back to the seed or a custom extractor). Returns `{ comparisons, totals, preferred }` where `totals` contains `{ A, B, tie }`.
+Same options as `scoreDataset`, but you pass both `datasetA` and `datasetB`. Add `concurrency` to limit how many pairwise comparisons run in parallel (defaults to `1`). Rows are paired by `meta.metadata.id` (falls back to the seed or a custom extractor). Returns `{ comparisons, totals, preferred }` where `totals` contains `{ A, B, tie }` and `preferred` points to whichever dataset has more wins (ties only occur when A and B have the same win count).
 
 Optional helpers:
 
-- `showProgress: true` or a custom `progressRenderer` (e.g., `PairwiseEvaluationRenderer`) to render a live dashboard and celebratory summary.
+- `showProgress: true` or a custom `progressRenderer` (e.g., `PairwiseEvaluationRenderer`) to render a live dashboard with in-flight counts plus running A/B/tie tallies and a celebratory summary.
 - `onProgress(progress)` for custom integrations/metrics.
 - `outputPath` to persist the entire result object as prettified JSON.
 

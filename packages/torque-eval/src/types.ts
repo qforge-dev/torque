@@ -108,6 +108,11 @@ export interface ComparisonProgress {
   completed: number;
   inProgress: number;
   total: number;
+  wins: {
+    A: number;
+    B: number;
+    tie: number;
+  };
 }
 
 export interface ComparisonRendererConfig {

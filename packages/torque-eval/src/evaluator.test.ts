@@ -299,6 +299,46 @@ describe("compareDatasets", () => {
     expect(comparison!.winner).toBe("tie");
   });
 
+  it("still prefers the dataset with more wins even if ties dominate", async () => {
+    const datasetA = [
+      createRow("row_1", "Dataset A answer 1 [FORCE_TIE]"),
+      createRow("row_2", "Dataset A answer 2 [FORCE_TIE]"),
+      createRow("row_3", "Dataset A answer 3 [A_WIN]"),
+    ];
+    const datasetB = [
+      createRow("row_1", "Dataset B answer 1 [FORCE_TIE]"),
+      createRow("row_2", "Dataset B answer 2 [FORCE_TIE]"),
+      createRow("row_3", "Dataset B answer 3"),
+    ];
+
+    const mockJudge = new MockLanguageModelV2({
+      doGenerate: async (options) => {
+        const promptText = JSON.stringify(options.prompt);
+        if (promptText.includes("[FORCE_TIE]")) {
+          return buildTextGenerationResult({
+            winner: "tie",
+            rationale: "forced tie marker",
+          });
+        }
+        const label = findRowLabelForMarker(promptText, "[A_WIN]") ?? "A";
+        return buildTextGenerationResult({
+          winner: label,
+          rationale: "marker prefers dataset A",
+        });
+      },
+    });
+
+    const result = await compareDatasets({
+      datasetA,
+      datasetB,
+      sampleSize: 3,
+      judgeModel: mockJudge,
+    });
+
+    expect(result.totals).toEqual({ A: 1, B: 0, tie: 2 });
+    expect(result.preferred).toBe("A");
+  });
+
   it("honors the requested concurrency when running comparisons", async () => {
     const datasetA = Array.from({ length: 6 }, (_, idx) =>
       createRow(`row_${idx + 1}`, `Dataset A answer ${idx + 1}`)
@@ -419,7 +459,17 @@ describe("compareDatasets", () => {
     expect(renderer.finishCalled).toBe(true);
     expect(renderer.failCalled).toBe(false);
     expect(renderer.progressSnapshots.at(-1)?.completed).toBe(2);
+    expect(renderer.progressSnapshots.at(-1)?.wins).toEqual({
+      A: 0,
+      B: 0,
+      tie: 2,
+    });
     expect(callbackSnapshots.length).toBeGreaterThan(0);
     expect(callbackSnapshots.at(-1)?.completed).toBe(2);
+    expect(callbackSnapshots.at(-1)?.wins).toEqual({
+      A: 0,
+      B: 0,
+      tie: 2,
+    });
   });
 });

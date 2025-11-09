@@ -110,12 +110,10 @@ function derivePreferredWinner(totals: {
   B: number;
   tie: number;
 }): PairwiseWinner {
-  const max = Math.max(totals.A, totals.B, totals.tie);
-  if (max === totals.tie) return "tie";
-  if (max === totals.A && max === totals.B) return "tie";
-  if (max === totals.A) return "A";
-  if (max === totals.B) return "B";
-  return "tie";
+  if (totals.A === totals.B) {
+    return "tie";
+  }
+  return totals.A > totals.B ? "A" : "B";
 }
 
 function normalizeWinnerForOrder(
@@ -200,6 +198,11 @@ export async function compareDatasets(
 
   const renderer = resolveRenderer(options);
   const totalPairs = pairs.length;
+  const progressTotals: Record<PairwiseWinner, number> = {
+    A: 0,
+    B: 0,
+    tie: 0,
+  };
 
   renderer?.start({
     total: totalPairs,
@@ -208,9 +211,13 @@ export async function compareDatasets(
     instructions: options.instructions,
   });
 
-  const notifyProgress = (progress: ComparisonProgress) => {
-    renderer?.update(progress);
-    options.onProgress?.(progress);
+  const notifyProgress = (progress: Omit<ComparisonProgress, "wins">) => {
+    const enrichedProgress: ComparisonProgress = {
+      ...progress,
+      wins: { ...progressTotals },
+    };
+    renderer?.update(enrichedProgress);
+    options.onProgress?.(enrichedProgress);
   };
 
   notifyProgress({ completed: 0, inProgress: 0, total: totalPairs });
@@ -259,6 +266,7 @@ export async function compareDatasets(
         const normalizedWinners = runs.map((run) => run.normalizedWinner);
         const finalWinner = deriveAggregateWinner(normalizedWinners);
         const rationale = summarizeRationale(runs, finalWinner);
+        progressTotals[finalWinner] += 1;
 
         return {
           id: pair.id,

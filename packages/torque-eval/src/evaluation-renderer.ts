@@ -10,6 +10,7 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
     completed: 0,
     inProgress: 0,
     total: 0,
+    wins: { A: 0, B: 0, tie: 0 },
   };
   private config: ComparisonRendererConfig | null = null;
   private startTime = 0;
@@ -25,6 +26,7 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
       completed: 0,
       inProgress: 0,
       total: config.total,
+      wins: { A: 0, B: 0, tie: 0 },
     };
     this.isFinished = false;
     this.queueRender(true);
@@ -101,9 +103,7 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
     console.log(
       "╔═══════════════════════════════════════════════════════════╗"
     );
-    console.log(
-      "║             Pairwise Evaluation Dashboard ⚖️             ║"
-    );
+    console.log("║             Pairwise Evaluation Dashboard ⚖️             ║");
     console.log(
       "╚═══════════════════════════════════════════════════════════╝"
     );
@@ -134,16 +134,23 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
 
   private renderProgress(): void {
     const { completed, inProgress, total } = this.progress;
+    const wins = this.progress.wins ?? { A: 0, B: 0, tie: 0 };
     const percentage =
       total > 0 ? ((completed / total) * 100).toFixed(1) : "0.0";
     console.log("📊 Progress:");
     console.log(
-      `   ${this.renderProgressBar(completed, total)} ${completed}/${total} (${percentage}%)`
+      `   ${this.renderProgressBar(
+        completed,
+        total
+      )} ${completed}/${total} (${percentage}%)`
     );
     const remaining = Math.max(total - completed - inProgress, 0);
+    console.log(`   ⚙️  In flight: ${inProgress} | 📋 Remaining: ${remaining}`);
     console.log(
-      `   ⚙️  In flight: ${inProgress} | 📋 Remaining: ${remaining}`
+      `   🅰️  A wins: ${wins.A} | 🅱️  B wins: ${wins.B} | 🤝 ties: ${wins.tie}`
     );
+    const better = this.describeBetterDataset(wins);
+    console.log(`   🏁 Better so far: ${better}`);
     console.log();
   }
 
@@ -171,8 +178,8 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
     );
     console.log(
       summary.preferred === "tie"
-        ? "🤝 Preferred outcome: tie"
-        : `🏆 Preferred outcome: dataset ${summary.preferred}`
+        ? "🤝 Better dataset: tie"
+        : `🏆 Better dataset: dataset ${summary.preferred}`
     );
     if (summary.outputPath) {
       console.log(`💾 Saved results to: ${summary.outputPath}`);
@@ -195,5 +202,16 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
 
   private clearConsole(): void {
     process.stdout.write("\x1b[2J\x1b[H");
+  }
+
+  private describeBetterDataset(wins: {
+    A: number;
+    B: number;
+    tie: number;
+  }): string {
+    if (wins.A === wins.B) {
+      return "tie";
+    }
+    return wins.A > wins.B ? "dataset A" : "dataset B";
   }
 }
