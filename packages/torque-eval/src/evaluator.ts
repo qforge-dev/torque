@@ -7,6 +7,7 @@ import type {
   CompareDatasetsResult,
   ComparisonProgress,
   ComparisonRenderer,
+  JudgeModel,
   PairwiseComparison,
   PairwiseComparisonRun,
   PairwiseRunOrder,
@@ -14,7 +15,6 @@ import type {
   ScoreDatasetOptions,
   ScoreDatasetResult,
   ScoreRecord,
-  JudgeModel,
 } from "./types";
 import { loadDataset } from "./loaders";
 import { samplePairedRows, sampleRows } from "./sampling";
@@ -44,6 +44,24 @@ function averageScores(samples: ScoreRecord[]): ScoreDatasetResult["averages"] {
     coherence: Number((totals.coherence / divisor).toFixed(2)),
     adherence: Number((totals.adherence / divisor).toFixed(2)),
   };
+}
+
+function extractJudgeModelId(judgeModel: JudgeModel): string | undefined {
+  if (typeof judgeModel === "string") {
+    const trimmed = judgeModel.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  if (
+    typeof judgeModel === "object" &&
+    judgeModel !== null &&
+    "modelId" in judgeModel &&
+    typeof judgeModel.modelId === "string"
+  ) {
+    return judgeModel.modelId;
+  }
+
+  return undefined;
 }
 
 async function runJudgeModel<T>(
@@ -102,6 +120,7 @@ export async function scoreDataset(
   return {
     samples,
     averages: averageScores(samples),
+    judgeModelId: extractJudgeModelId(options.judgeModel),
   };
 }
 
@@ -174,6 +193,7 @@ export async function compareDatasets(
   options: CompareDatasetsOptions
 ): Promise<CompareDatasetsResult> {
   const evaluationStart = Date.now();
+  const judgeModelId = extractJudgeModelId(options.judgeModel);
 
   const [datasetA, datasetB] = await Promise.all([
     loadDataset(options.datasetA),
@@ -209,6 +229,7 @@ export async function compareDatasets(
     concurrency: options.concurrency ?? 1,
     seed: options.seed,
     instructions: options.instructions,
+    judgeModelId,
   });
 
   const notifyProgress = (progress: Omit<ComparisonProgress, "wins">) => {
@@ -300,6 +321,7 @@ export async function compareDatasets(
       comparisons,
       totals,
       preferred: derivePreferredWinner(totals),
+      judgeModelId,
     };
 
     let savedPath: string | undefined;
@@ -312,6 +334,7 @@ export async function compareDatasets(
       preferred: result.preferred,
       outputPath: savedPath,
       durationMs: Date.now() - evaluationStart,
+      judgeModelId,
     });
 
     return result;

@@ -36,4 +36,7 @@ console.log(
     pairwise.preferred === "tie" ? "tie" : `dataset ${pairwise.preferred}`
   }`
 );
+console.log(
+  `Judge model: ${pairwise.judgeModelId ?? "unknown judge model"}`
+);
 console.log(`Detailed comparison saved to ${outputPath}`);

@@ -131,6 +131,7 @@ describe("scoreDataset", () => {
     result.samples.forEach((sample) => {
       expect(sample.scores.notes).toBe("looks good");
     });
+    expect(result.judgeModelId).toBe("mock-model-id");
   });
 });
 
@@ -189,6 +190,7 @@ describe("compareDatasets", () => {
     expect(result.comparisons.length).toBe(3);
     expect(result.totals).toEqual({ A: 1, B: 1, tie: 1 });
     expect(result.preferred).toBe("tie");
+    expect(result.judgeModelId).toBe("mock-model-id");
 
     const comparisonMap = Object.fromEntries(
       result.comparisons.map((comparison) => [comparison.id, comparison])
@@ -405,6 +407,7 @@ describe("compareDatasets", () => {
     const persisted = JSON.parse(await readFile(outputPath, "utf-8"));
     expect(persisted.totals).toEqual(result.totals);
     expect(persisted.preferred).toEqual("A");
+    expect(persisted.judgeModelId).toEqual(result.judgeModelId);
   });
 
   it("supports custom progress renderers and callbacks", async () => {

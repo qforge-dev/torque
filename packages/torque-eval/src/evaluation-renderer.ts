@@ -119,6 +119,8 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
     console.log("📋 Configuration:");
     console.log(`   Total pairs: ${this.config.total}`);
     console.log(`   Concurrency: ${this.config.concurrency}`);
+    const judgeModel = this.config.judgeModelId ?? "unknown judge model";
+    console.log(`   Judge model: ${judgeModel}`);
     if (this.config.seed !== undefined) {
       console.log(`   Seed: ${this.config.seed}`);
     }
@@ -181,6 +183,11 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
         ? "🤝 Better dataset: tie"
         : `🏆 Better dataset: dataset ${summary.preferred}`
     );
+    const judgeModel =
+      summary.judgeModelId ??
+      this.config?.judgeModelId ??
+      "unknown judge model";
+    console.log(`🧑‍⚖️ Judge model: ${judgeModel}`);
     if (summary.outputPath) {
       console.log(`💾 Saved results to: ${summary.outputPath}`);
     }

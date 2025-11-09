@@ -53,6 +53,7 @@ export interface ScoreDatasetResult {
     coherence: number;
     adherence: number;
   };
+  judgeModelId?: string;
 }
 
 export interface CompareDatasetsOptions {
@@ -102,6 +103,7 @@ export interface CompareDatasetsResult {
     tie: number;
   };
   preferred: PairwiseWinner;
+  judgeModelId?: string;
 }
 
 export interface ComparisonProgress {
@@ -120,6 +122,7 @@ export interface ComparisonRendererConfig {
   concurrency: number;
   seed?: number;
   instructions?: string;
+  judgeModelId?: string;
 }
 
 export interface ComparisonSummary {
@@ -127,6 +130,7 @@ export interface ComparisonSummary {
   preferred: PairwiseWinner;
   outputPath?: string;
   durationMs: number;
+  judgeModelId?: string;
 }
 
 export interface ComparisonRenderer {
