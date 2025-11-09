@@ -4,8 +4,10 @@ const DEFAULT_SINGLE_INSTRUCTIONS = `You are judging synthetic data—the facts 
 
 Schema structure reminder:
 - Schema metadata: high-level scenario intent or constraints.
-- Schema plan: ordered role prompts describing each message's target role/content (role order is enforced; you'll never see assistant/user swapped).
+- Schema plan: ordered role prompts describing each message's target role/content (role order, speaker sequence, and tool-call placement are enforced automatically).
 - Tools: callable functions, their descriptions, and expected arguments/results (argument/result schemas are enforced—shapes will be valid, but meaning might still be nonsensical).
+
+The generator already guarantees that the conversation follows the scripted sequence (e.g., USER → ASSISTANT → TOOL CALL → TOOL RESULT → ASSISTANT), so do not award or deduct points solely because the turn order matches the plan—only penalize when the *content* contradicts the schema intent or tool semantics.
 
 Score each dimension on 0-10.
 
@@ -32,25 +34,33 @@ Example JSON: {"quality":8,"coherence":7,"adherence":8,"notes":"Assistant cites 
 
 Penalize semantically nonsensical tool usage (even if schema-valid), contradictions, broken continuity, or policy issues. Reward rows that honor the DSL plan and produce meaningful synthetic data.`;
 
-const DEFAULT_PAIR_INSTRUCTIONS = `All rows contain synthetic (fabricated) data. Role order and tool schemas are already enforced; judge whether each row makes semantic, contextual sense despite that scaffolding.
+const DEFAULT_PAIR_INSTRUCTIONS = `All rows contain synthetic (fabricated) data. Role order, speaker sequencing, and tool-call placement already match the schema plan; judge whether each row makes semantic, contextual sense despite that scaffolding.
 
 Use the same Quality / Coherence / Adherence definitions:
 - Quality checks schema alignment, realistic content, and proper tool usage.
 - Coherence checks conversational flow and consistency of tool inputs/outputs.
 - Adherence checks instruction following, safety, and staying in-role.
 
+Structure is not up for debate: both rows already follow the scripted turn order. Focus on whether their *content*, tool arguments, and summaries honor the scenario intent, required formats, and timing constraints.
+
+Comparison priorities (apply in order and stop once a decisive difference appears):
+1. Schema plan + format fidelity: rows must follow the scripted plan (e.g., casual fillers vs. tool-heavy turns), honor timing around tool availability, and return outputs in the exact format the user/schema demands. Dropping a required tool result or responding in the wrong format is a severe adherence failure.
+2. Tool integrity: tool calls, acknowledgements, and final summaries must stay deterministic. Penalize rows that invent tool statuses, contradict a tool’s output, or fail to integrate every tool result that was fetched.
+3. Content flow and safety: prefer rows whose conversations stay on-topic, resolve user requests, and remain safe/consistent once the above constraints are satisfied.
+
 Comparison guidance:
-- Prefer rows that track the schema plan, role prompts, and tool schemas.
-- Prefer deterministic tool behavior (args/results match context and schema).
-- Consider severity: hallucinating a tool result is worse than slightly awkward phrasing.
+- Prefer rows that track the schema plan, role prompts, and tool schemas without skipping or reordering required steps.
+- Prefer deterministic tool behavior (args/results match context and schema, and final answers mirror those results).
+- Consider severity: hallucinating a tool result or ignoring a required format outweighs minor style issues.
 
 Examples:
-- If Row A uses the mandated booking tool with schema-compliant args while Row B fabricates the outcome, choose "A".
-- If both rows follow every instruction but differ only in tone, return "tie".
+- If Row A obeys the delay plan by repeatedly saying results are still loading until the final tool output, while Row B fabricates an “empty” result early, choose "A".
+- If Row A combines every required tool output into the JSON the user requested but Row B replies with a prose list instead, choose "A".
+- If both rows follow every instruction (including format/timing) and differ only in tone, return "tie".
 
 Example JSON: {"winner":"B","rationale":"Row B uses the enforced lookup schema to retrieve data relevant to the user question; Row A returns schema-shaped but nonsensical numbers."}
 
-Return "tie" only when both rows are virtually indistinguishable on all three axes.`;
+Return "tie" only when both rows satisfy every instruction, format, and tool requirement to the same degree.`;
 
 function truncate(text: string, max = 300): string {
   if (text.length <= max) {
