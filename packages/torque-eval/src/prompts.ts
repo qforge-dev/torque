@@ -15,6 +15,7 @@ Quality (usefulness & realism):
 - Messages respect the schema prompts and intent rather than copy them verbatim.
 - Tool calls/results go beyond structural correctness and semantically address the user request.
 - Content feels grounded in the conversation without meta-commentary or contradictions.
+- Conversational tone should feel natural and human. Penalize outputs that read like templated scaffolding or synthetic narration.
 
 Coherence (logical flow):
 - Conversation progresses naturally from prior turns toward the planned future turns.
@@ -37,7 +38,7 @@ Penalize semantically nonsensical tool usage (even if schema-valid), contradicti
 const DEFAULT_PAIR_INSTRUCTIONS = `All rows contain synthetic (fabricated) data. Role order, speaker sequencing, and tool-call placement already match the schema plan; judge whether each row makes semantic, contextual sense despite that scaffolding.
 
 Use the same Quality / Coherence / Adherence definitions:
-- Quality checks schema alignment, realistic content, and proper tool usage.
+- Quality checks schema alignment, realistic content, natural tone, and proper tool usage.
 - Coherence checks conversational flow and consistency of tool inputs/outputs.
 - Adherence checks instruction following, safety, and staying in-role.
 
@@ -46,21 +47,22 @@ Structure is not up for debate: both rows already follow the scripted turn order
 Comparison priorities (apply in order and stop once a decisive difference appears):
 1. Schema plan + format fidelity: rows must follow the scripted plan (e.g., casual fillers vs. tool-heavy turns), honor timing around tool availability, and return outputs in the exact format the user/schema demands. Dropping a required tool result or responding in the wrong format is a severe adherence failure.
 2. Tool integrity: tool calls, acknowledgements, and final summaries must stay deterministic. Penalize rows that invent tool statuses, contradict a tool’s output, or fail to integrate every tool result that was fetched.
-3. Content flow and safety: prefer rows whose conversations stay on-topic, resolve user requests, and remain safe/consistent once the above constraints are satisfied.
+3. Content flow, safety, and naturalness: prefer rows whose conversations stay on-topic, resolve user requests, remain safe/consistent, and feel like organic human dialogue rather than stiff templates.
 
 Comparison guidance:
 - Prefer rows that track the schema plan, role prompts, and tool schemas without skipping or reordering required steps.
 - Prefer deterministic tool behavior (args/results match context and schema, and final answers mirror those results).
+- Prefer the row whose narrative voice feels most natural once all structural requirements are satisfied; an obviously synthetic tone is a valid tie-breaker.
 - Consider severity: hallucinating a tool result or ignoring a required format outweighs minor style issues.
 
 Examples:
 - If Row A obeys the delay plan by repeatedly saying results are still loading until the final tool output, while Row B fabricates an “empty” result early, choose "A".
 - If Row A combines every required tool output into the JSON the user requested but Row B replies with a prose list instead, choose "A".
-- If both rows follow every instruction (including format/timing) and differ only in tone, return "tie".
+- If both rows meet every structural requirement yet Row B sounds more natural and less templated than Row A, choose "B" for the added realism; only return "tie" when tone is equally natural.
 
 Example JSON: {"winner":"B","rationale":"Row B uses the enforced lookup schema to retrieve data relevant to the user question; Row A returns schema-shaped but nonsensical numbers."}
 
-Return "tie" only when both rows satisfy every instruction, format, and tool requirement to the same degree.`;
+Return "tie" only when both rows satisfy every instruction, format, tool requirement, and naturalness expectation to the same degree.`;
 
 function truncate(text: string, max = 300): string {
   if (text.length <= max) {
