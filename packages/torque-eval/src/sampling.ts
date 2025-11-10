@@ -94,7 +94,8 @@ export function samplePairedRows(
   datasetB: IDatasetRow[],
   count: number,
   seed?: number,
-  rowIdExtractor?: RowIdExtractor
+  rowIdExtractor?: RowIdExtractor,
+  excludedIds?: Set<string>
 ): PairSample[] {
   if (datasetA.length === 0 || datasetB.length === 0) {
     return [];
@@ -114,28 +115,30 @@ export function samplePairedRows(
   const mapA = mapRows(datasetA);
   const mapB = mapRows(datasetB);
 
-  const commonIds = Array.from(mapA.keys()).filter((id) =>
-    mapB.has(id)
-  );
-
-  if (commonIds.length === 0) {
+  const overlappingIds = Array.from(mapA.keys()).filter((id) => mapB.has(id));
+  if (overlappingIds.length === 0) {
     throw new Error(
       "No overlapping row IDs were found between the two datasets"
     );
   }
 
+  const candidateIds = overlappingIds.filter((id) => !excludedIds?.has(id));
+  if (candidateIds.length === 0) {
+    return [];
+  }
+
   const normalizedCount = Math.max(
     1,
-    Math.min(count, commonIds.length)
+    Math.min(count, candidateIds.length)
   );
 
   const random =
     typeof seed === "number"
       ? createSeededRandom(seed)
       : Math.random;
-  shuffleInPlace(commonIds, random);
+  shuffleInPlace(candidateIds, random);
 
-  return commonIds.slice(0, normalizedCount).map((id) => ({
+  return candidateIds.slice(0, normalizedCount).map((id) => ({
     id,
     rowA: mapA.get(id)!,
     rowB: mapB.get(id)!,

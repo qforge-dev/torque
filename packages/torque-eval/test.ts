@@ -2,7 +2,6 @@ import path from "node:path";
 import { compareDatasets } from "./src/evaluator";
 import { PairwiseEvaluationRenderer } from "./src/evaluation-renderer";
 import { createOpenAI } from "@ai-sdk/openai";
-import { openrouter } from "@openrouter/ai-sdk-provider";
 
 const apiKey = process.env.OPENAI_API_KEY;
 
@@ -18,25 +17,35 @@ if (!apiKey) {
 
 const openai = createOpenAI({ apiKey });
 const renderer = new PairwiseEvaluationRenderer();
-const outputPath = path.join(process.cwd(), "pairwise-results-4.json");
+const outputPath = path.join(process.cwd(), "pairwise-results-5.json");
 
 const pairwise = await compareDatasets({
-  datasetA: "/Users/michalwarda/Projects/torque/data/ds1.jsonl",
-  datasetB: "/Users/michalwarda/Projects/torque/data/ds2.jsonl",
+  datasets: {
+    "gpt-5": "/Users/michalwarda/Projects/torque/data/ds1.jsonl",
+    "gpt-5-mini": "/Users/michalwarda/Projects/torque/data/ds2.jsonl",
+    "grok-code-fast-1": "/Users/michalwarda/Projects/torque/data/ds3.jsonl",
+    "gemini-2.5-flash-lite":
+      "/Users/michalwarda/Projects/torque/data/ds4.jsonl",
+    "gemini-2.5-flash": "/Users/michalwarda/Projects/torque/data/ds5.jsonl",
+    "minimax-m2": "/Users/michalwarda/Projects/torque/data/ds6.jsonl",
+  },
   sampleSize: 20,
   seed: 7,
-  judgeModel: openrouter("x-ai/grok-4-fast"),
+  judgeModel: openai("gpt-5-mini"),
   concurrency: 20,
   progressRenderer: renderer,
   outputPath,
 });
 
-console.log(
-  `Better dataset: ${
-    pairwise.preferred === "tie" ? "tie" : `dataset ${pairwise.preferred}`
-  }`
-);
-console.log(
-  `Judge model: ${pairwise.judgeModelId ?? "unknown judge model"}`
-);
+const leader = pairwise.leaderboard[0];
+if (leader) {
+  console.log(
+    `Top dataset: ${leader.datasetId} (rating ${leader.rating.toFixed(1)}, W:${
+      leader.wins
+    } L:${leader.losses} T:${leader.ties})`
+  );
+} else {
+  console.log("No comparisons were executed.");
+}
+console.log(`Judge model: ${pairwise.judgeModelId ?? "unknown judge model"}`);
 console.log(`Detailed comparison saved to ${outputPath}`);

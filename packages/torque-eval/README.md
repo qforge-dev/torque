@@ -33,8 +33,10 @@ const absolute = await scoreDataset({
 // Pairwise comparison
 const renderer = new PairwiseEvaluationRenderer();
 const pairwise = await compareDatasets({
-  datasetA: "data/model-a-run.jsonl",
-  datasetB: "data/model-b-run.jsonl",
+  datasets: {
+    control: "data/model-a-run.jsonl",
+    variant: "data/model-b-run.jsonl",
+  },
   sampleSize: 40,
   seed: 7,
   judgeModel: openai("gpt-4o-mini"),
@@ -70,13 +72,21 @@ Returns `{ samples, averages }` where each sample exposes the raw prompt/respons
 
 ### `compareDatasets(options)`
 
-Same options as `scoreDataset`, but you pass both `datasetA` and `datasetB`. Add `concurrency` to limit how many pairwise comparisons run in parallel (defaults to `1`). Rows are paired by `meta.metadata.id` (falls back to the seed or a custom extractor). Returns `{ comparisons, totals, preferred }` where `totals` contains `{ A, B, tie }` and `preferred` points to whichever dataset has more wins (ties only occur when A and B have the same win count).
+Provide `datasets` as either an object (`{ control: datasetA, variant: datasetB, ... }`) or an array of `{ id, dataset }`. Add `concurrency` to cap simultaneous judge calls (defaults to `1`). Rows are paired per dataset combination using their metadata IDs (or a custom `rowIdExtractor`). The result contains:
+
+- `comparisons`: every per-row decision and the underlying prompts/responses.
+- `pairs`: aggregate wins/ties for each dataset pair.
+- `leaderboard`: Elo-style ratings (`initialRating=1500`, `kFactor=32` by default) summarizing wins/losses/ties across the whole tournament.
+- `sampleSize` is applied per dataset pair. When you resume from a previous run we only schedule the additional row IDs needed to reach that count, so storing past results keeps existing pairings intact.
 
 Optional helpers:
 
 - `showProgress: true` or a custom `progressRenderer` (e.g., `PairwiseEvaluationRenderer`) to render a live dashboard with in-flight counts plus running A/B/tie tallies and a celebratory summary.
 - `onProgress(progress)` for custom integrations/metrics.
 - `outputPath` to persist the entire result object as prettified JSON.
+- `resumeFrom` to load a previous JSON result file. Already-resolved row IDs are reused so you can add new datasets or top up the sample size without rerunning older matches. Combine with `outputPath` (or omit it to overwrite the same file) for incremental runs.
+- `initialComparisons` if you want to seed the Elo leaderboard with comparisons you've already computed in memory.
+- `elo` to tweak `initialRating` or `kFactor`.
 
 ## Customizing prompts
 

@@ -136,88 +136,105 @@ describe("scoreDataset", () => {
 });
 
 describe("compareDatasets", () => {
-  it("pairs rows by id and tallies winners", async () => {
-    const datasetA = [
-      createRow("row_1", "Version A answer 1"),
-      createRow("row_2", "Version A answer 2 [A_WINS]"),
-      createRow("row_3", "Version A answer 3"),
+  it("compares more than two datasets and builds Elo + pair summaries", async () => {
+    const datasetMarkers = {
+      alpha: "[DATASET_ALPHA]",
+      bravo: "[DATASET_BRAVO]",
+      charlie: "[DATASET_CHARLIE]",
+    };
+
+    const datasetAlpha = [
+      createRow("row_1", `Alpha v1 ${datasetMarkers.alpha}`),
+      createRow("row_2", `Alpha v2 ${datasetMarkers.alpha}`),
+      createRow("row_3", `Alpha v3 ${datasetMarkers.alpha}`),
+    ];
+    const datasetBravo = [
+      createRow("row_1", `Bravo v1 ${datasetMarkers.bravo}`),
+      createRow("row_2", `Bravo v2 ${datasetMarkers.bravo}`),
+      createRow("row_3", `Bravo v3 ${datasetMarkers.bravo}`),
+    ];
+    const datasetCharlie = [
+      createRow("row_1", `Charlie v1 ${datasetMarkers.charlie}`),
+      createRow("row_2", `Charlie v2 ${datasetMarkers.charlie}`),
+      createRow("row_3", `Charlie v3 ${datasetMarkers.charlie}`),
     ];
 
-    const datasetB = [
-      createRow("row_1", "Version B answer 1 [B_WINS]"),
-      createRow("row_2", "Version B answer 2"),
-      createRow("row_3", "Version B answer 3 [TIE]"),
-    ];
+    const desiredWinners: Record<string, string | "tie"> = {
+      "alpha|bravo": "alpha",
+      "alpha|charlie": "alpha",
+      "bravo|charlie": "tie",
+    };
 
     const mockJudge = new MockLanguageModelV2({
       doGenerate: async (options) => {
         const promptText = JSON.stringify(options.prompt);
-        if (promptText.includes("[TIE]")) {
+        const placements: Record<"A" | "B", string | undefined> = {
+          A: undefined,
+          B: undefined,
+        };
+        for (const [datasetId, marker] of Object.entries(datasetMarkers)) {
+          const label = findRowLabelForMarker(promptText, marker);
+          if (label) {
+            placements[label] = datasetId;
+          }
+        }
+        const rowAId = placements.A;
+        const rowBId = placements.B;
+        if (!rowAId || !rowBId) {
+          return buildTextGenerationResult({
+            winner: "A",
+            rationale: "fallback winner",
+          });
+        }
+        const pairKey = [rowAId, rowBId].sort().join("|");
+        const desired = desiredWinners[pairKey] ?? rowAId;
+        if (desired === "tie") {
           return buildTextGenerationResult({
             winner: "tie",
-            rationale: "tie marker",
+            rationale: "declared tie",
           });
         }
-        if (promptText.includes("[B_WINS]")) {
-          const label = findRowLabelForMarker(promptText, "[B_WINS]") ?? "B";
-          return buildTextGenerationResult({
-            winner: label,
-            rationale: "marker indicates dataset B row",
-          });
-        }
-        if (promptText.includes("[A_WINS]")) {
-          const label = findRowLabelForMarker(promptText, "[A_WINS]") ?? "A";
-          return buildTextGenerationResult({
-            winner: label,
-            rationale: "marker indicates dataset A row",
-          });
-        }
+        const winnerLabel = desired === rowAId ? "A" : "B";
         return buildTextGenerationResult({
-          winner: "A",
-          rationale: "default to A",
+          winner: winnerLabel,
+          rationale: `pair preference favors ${desired}`,
         });
       },
     });
 
     const result = await compareDatasets({
-      datasetA,
-      datasetB,
+      datasets: {
+        alpha: datasetAlpha,
+        bravo: datasetBravo,
+        charlie: datasetCharlie,
+      },
       sampleSize: 3,
-      seed: 42,
       judgeModel: mockJudge,
+      seed: 77,
     });
 
-    expect(result.comparisons.length).toBe(3);
-    expect(result.totals).toEqual({ A: 1, B: 1, tie: 1 });
-    expect(result.preferred).toBe("tie");
+    expect(result.comparisons).toHaveLength(9);
     expect(result.judgeModelId).toBe("mock-model-id");
-
-    const comparisonMap = Object.fromEntries(
-      result.comparisons.map((comparison) => [comparison.id, comparison])
+    expect(result.pairs).toHaveLength(3);
+    const alphaBravo = result.pairs.find(
+      (pair) =>
+        pair.datasetAId === "alpha" && pair.datasetBId === "bravo"
     );
-
-    const row1 = comparisonMap["row_1"];
-    expect(row1).toBeDefined();
-    const row1Runs = row1!.runs;
-    expect(row1Runs).toHaveLength(2);
-    expect(row1Runs.map((run) => run.order)).toEqual([
-      "datasetA-first",
-      "datasetB-first",
-    ]);
-    expect(row1Runs.map((run) => run.normalizedWinner)).toEqual(["B", "B"]);
-    expect(row1!.winner).toBe("B");
-
-    const row2 = comparisonMap["row_2"];
-    expect(row2).toBeDefined();
-    expect(row2!.runs.map((run) => run.normalizedWinner)).toEqual(["A", "A"]);
-    expect(row2!.winner).toBe("A");
-
-    const row3 = comparisonMap["row_3"];
-    expect(row3).toBeDefined();
-    expect(row3!.runs.every((run) => run.normalizedWinner === "tie")).toBe(
-      true
+    expect(alphaBravo?.wins.alpha ?? 0).toBeGreaterThan(
+      alphaBravo?.wins.bravo ?? 0
     );
-    expect(row3!.winner).toBe("tie");
+    const bravoCharlie = result.pairs.find(
+      (pair) =>
+        pair.datasetAId === "bravo" && pair.datasetBId === "charlie"
+    );
+    expect(bravoCharlie?.wins.tie).toBe(bravoCharlie?.samples);
+
+    const leaderboardIds = result.leaderboard.map(
+      (entry) => entry.datasetId
+    );
+    expect(leaderboardIds).toEqual(["alpha", "charlie", "bravo"]);
+    const alphaEntry = result.leaderboard[0];
+    expect(alphaEntry?.wins).toBeGreaterThan(alphaEntry?.losses ?? 0);
   });
 
   it("supports mixing JSON and Parquet sources", async () => {
@@ -248,8 +265,10 @@ describe("compareDatasets", () => {
     await writer.close();
 
     const result = await compareDatasets({
-      datasetA: jsonPath,
-      datasetB: parquetPath,
+      datasets: {
+        json: jsonPath,
+        parquet: parquetPath,
+      },
       sampleSize: 1,
       judgeModel: new MockLanguageModelV2({
         doGenerate: async (options) => {
@@ -265,8 +284,9 @@ describe("compareDatasets", () => {
     });
 
     expect(result.comparisons).toHaveLength(1);
-    expect(result.totals).toEqual({ A: 0, B: 1, tie: 0 });
-    expect(result.preferred).toBe("B");
+    const pair = result.pairs[0];
+    expect(pair?.wins.parquet).toBe(1);
+    expect(result.leaderboard[0]?.datasetId).toBe("parquet");
     expect(result.comparisons[0]?.runs).toHaveLength(2);
   });
 
@@ -283,21 +303,19 @@ describe("compareDatasets", () => {
     });
 
     const result = await compareDatasets({
-      datasetA,
-      datasetB,
+      datasets: { datasetA, datasetB },
       sampleSize: 1,
       seed: 99,
       judgeModel: mockJudge,
     });
 
-    expect(result.totals.tie).toBe(1);
-    expect(result.totals.A).toBe(0);
-    expect(result.totals.B).toBe(0);
+    const pair = result.pairs[0];
+    expect(pair?.wins.tie).toBe(1);
     const comparison = result.comparisons[0];
     expect(comparison).toBeDefined();
     expect(comparison!.runs).toHaveLength(2);
-    expect(comparison!.runs[0]!.normalizedWinner).toBe("A");
-    expect(comparison!.runs[1]!.normalizedWinner).toBe("B");
+    expect(comparison!.runs[0]!.normalizedWinner).toBe("datasetA");
+    expect(comparison!.runs[1]!.normalizedWinner).toBe("datasetB");
     expect(comparison!.winner).toBe("tie");
   });
 
@@ -331,14 +349,15 @@ describe("compareDatasets", () => {
     });
 
     const result = await compareDatasets({
-      datasetA,
-      datasetB,
+      datasets: { datasetA, datasetB },
       sampleSize: 3,
       judgeModel: mockJudge,
     });
 
-    expect(result.totals).toEqual({ A: 1, B: 0, tie: 2 });
-    expect(result.preferred).toBe("A");
+    const leaderboard = result.leaderboard;
+    expect(leaderboard[0]?.datasetId).toBe("datasetA");
+    const pair = result.pairs[0];
+    expect(pair?.wins.tie).toBe(2);
   });
 
   it("honors the requested concurrency when running comparisons", async () => {
@@ -367,8 +386,7 @@ describe("compareDatasets", () => {
     });
 
     await compareDatasets({
-      datasetA,
-      datasetB,
+      datasets: { datasetA, datasetB },
       sampleSize: 6,
       seed: 11,
       judgeModel: mockJudge,
@@ -388,8 +406,7 @@ describe("compareDatasets", () => {
     const datasetB = [createRow("row_1", "Dataset B answer")];
 
     const result = await compareDatasets({
-      datasetA,
-      datasetB,
+      datasets: { datasetA, datasetB },
       sampleSize: 1,
       judgeModel: new MockLanguageModelV2({
         doGenerate: async (options) => {
@@ -405,9 +422,50 @@ describe("compareDatasets", () => {
     });
 
     const persisted = JSON.parse(await readFile(outputPath, "utf-8"));
-    expect(persisted.totals).toEqual(result.totals);
-    expect(persisted.preferred).toEqual("A");
+    expect(persisted.leaderboard[0]?.datasetId).toEqual("datasetA");
     expect(persisted.judgeModelId).toEqual(result.judgeModelId);
+  });
+
+  it("resumes from a previous JSON result to avoid re-running matched rows", async () => {
+    const dir = await createTempDir();
+    const resumePath = path.join(dir, "resume.json");
+    const datasetA = [
+      createRow("row_1", "Dataset A answer [A_WINS]"),
+      createRow("row_2", "Dataset A answer [A_WINS]"),
+    ];
+    const datasetB = [
+      createRow("row_1", "Dataset B answer"),
+      createRow("row_2", "Dataset B answer"),
+    ];
+
+    const judge = new MockLanguageModelV2({
+      doGenerate: async (options) => {
+        const promptText = JSON.stringify(options.prompt);
+        const label = findRowLabelForMarker(promptText, "[A_WINS]") ?? "A";
+        return buildTextGenerationResult({
+          winner: label,
+          rationale: "A wins",
+        });
+      },
+    });
+
+    const firstRun = await compareDatasets({
+      datasets: { datasetA, datasetB },
+      sampleSize: 1,
+      judgeModel: judge,
+      outputPath: resumePath,
+    });
+
+    const secondRun = await compareDatasets({
+      datasets: { datasetA, datasetB },
+      sampleSize: 2,
+      judgeModel: judge,
+      resumeFrom: resumePath,
+    });
+
+    expect(firstRun.comparisons).toHaveLength(1);
+    expect(secondRun.comparisons).toHaveLength(2);
+    expect(secondRun.pairs[0]?.samples).toBe(2);
   });
 
   it("supports custom progress renderers and callbacks", async () => {
@@ -444,8 +502,7 @@ describe("compareDatasets", () => {
     const callbackSnapshots: ComparisonProgress[] = [];
 
     await compareDatasets({
-      datasetA,
-      datasetB,
+      datasets: { datasetA, datasetB },
       sampleSize: 2,
       judgeModel: new MockLanguageModelV2({
         doGenerate: async () =>
@@ -462,17 +519,17 @@ describe("compareDatasets", () => {
     expect(renderer.finishCalled).toBe(true);
     expect(renderer.failCalled).toBe(false);
     expect(renderer.progressSnapshots.at(-1)?.completed).toBe(2);
-    expect(renderer.progressSnapshots.at(-1)?.wins).toEqual({
-      A: 0,
-      B: 0,
-      tie: 2,
+    expect(renderer.progressSnapshots.at(-1)?.datasetWins).toEqual({
+      datasetA: 0,
+      datasetB: 0,
     });
+    expect(renderer.progressSnapshots.at(-1)?.ties).toBe(2);
     expect(callbackSnapshots.length).toBeGreaterThan(0);
     expect(callbackSnapshots.at(-1)?.completed).toBe(2);
-    expect(callbackSnapshots.at(-1)?.wins).toEqual({
-      A: 0,
-      B: 0,
-      tie: 2,
+    expect(callbackSnapshots.at(-1)?.datasetWins).toEqual({
+      datasetA: 0,
+      datasetB: 0,
     });
+    expect(callbackSnapshots.at(-1)?.ties).toBe(2);
   });
 });

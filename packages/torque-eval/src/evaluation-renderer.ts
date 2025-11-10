@@ -10,7 +10,8 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
     completed: 0,
     inProgress: 0,
     total: 0,
-    wins: { A: 0, B: 0, tie: 0 },
+    datasetWins: {},
+    ties: 0,
   };
   private config: ComparisonRendererConfig | null = null;
   private startTime = 0;
@@ -22,11 +23,15 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
   start(config: ComparisonRendererConfig): void {
     this.config = config;
     this.startTime = Date.now();
+    const datasetWins = Object.fromEntries(
+      (config.datasetIds ?? []).map((id) => [id, 0])
+    );
     this.progress = {
       completed: 0,
       inProgress: 0,
       total: config.total,
-      wins: { A: 0, B: 0, tie: 0 },
+      datasetWins,
+      ties: 0,
     };
     this.isFinished = false;
     this.queueRender(true);
@@ -119,6 +124,11 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
     console.log("📋 Configuration:");
     console.log(`   Total pairs: ${this.config.total}`);
     console.log(`   Concurrency: ${this.config.concurrency}`);
+    if (this.config.datasetIds?.length) {
+      console.log(
+        `   Datasets: ${this.config.datasetIds.join(", ")}`
+      );
+    }
     const judgeModel = this.config.judgeModelId ?? "unknown judge model";
     console.log(`   Judge model: ${judgeModel}`);
     if (this.config.seed !== undefined) {
@@ -135,8 +145,7 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
   }
 
   private renderProgress(): void {
-    const { completed, inProgress, total } = this.progress;
-    const wins = this.progress.wins ?? { A: 0, B: 0, tie: 0 };
+    const { completed, inProgress, total, ties } = this.progress;
     const percentage =
       total > 0 ? ((completed / total) * 100).toFixed(1) : "0.0";
     console.log("📊 Progress:");
@@ -148,11 +157,14 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
     );
     const remaining = Math.max(total - completed - inProgress, 0);
     console.log(`   ⚙️  In flight: ${inProgress} | 📋 Remaining: ${remaining}`);
-    console.log(
-      `   🅰️  A wins: ${wins.A} | 🅱️  B wins: ${wins.B} | 🤝 ties: ${wins.tie}`
-    );
-    const better = this.describeBetterDataset(wins);
-    console.log(`   🏁 Better so far: ${better}`);
+    const winsLine = this.formatWinsLine();
+    if (winsLine) {
+      console.log(`   🏆 Wins: ${winsLine}`);
+    } else {
+      console.log("   🏆 Wins: no results yet");
+    }
+    console.log(`   🤝 Ties: ${ties ?? 0}`);
+    console.log(`   🏁 Leader: ${this.describeLeader()}`);
     console.log();
   }
 
@@ -175,14 +187,31 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
     console.log();
 
     console.log(`⏱️  Total time: ${elapsed}s`);
-    console.log(
-      `📊 Totals -> A: ${summary.totals.A} | B: ${summary.totals.B} | ties: ${summary.totals.tie}`
-    );
-    console.log(
-      summary.preferred === "tie"
-        ? "🤝 Better dataset: tie"
-        : `🏆 Better dataset: dataset ${summary.preferred}`
-    );
+    console.log("🏆 Leaderboard:");
+    if (summary.leaderboard.length === 0) {
+      console.log("   No comparisons were run.");
+    } else {
+      summary.leaderboard.slice(0, 5).forEach((entry, index) => {
+        console.log(
+          `   ${index + 1}. ${entry.datasetId} — rating ${entry.rating.toFixed(
+            1
+          )} (W:${entry.wins} L:${entry.losses} T:${entry.ties})`
+        );
+      });
+    }
+    console.log();
+    console.log("🤝 Pair totals:");
+    if (summary.pairs.length === 0) {
+      console.log("   No pairwise stats recorded.");
+    } else {
+      summary.pairs.forEach((pair) => {
+        const winsA = pair.wins[pair.datasetAId] ?? 0;
+        const winsB = pair.wins[pair.datasetBId] ?? 0;
+        console.log(
+          `   ${pair.datasetAId} vs ${pair.datasetBId}: ${winsA}-${winsB} (ties: ${pair.wins.tie})`
+        );
+      });
+    }
     const judgeModel =
       summary.judgeModelId ??
       this.config?.judgeModelId ??
@@ -192,6 +221,37 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
       console.log(`💾 Saved results to: ${summary.outputPath}`);
     }
     console.log();
+  }
+
+  private getSortedWins(): Array<[string, number]> {
+    const wins = this.progress.datasetWins ?? {};
+    return Object.entries(wins).sort(
+      (a, b) => b[1] - a[1] || a[0].localeCompare(b[0])
+    );
+  }
+
+  private formatWinsLine(): string {
+    const sorted = this.getSortedWins();
+    if (sorted.length === 0) {
+      return "";
+    }
+    return sorted
+      .slice(0, 3)
+      .map(([id, count]) => `${id}: ${count}`)
+      .join(" | ");
+  }
+
+  private describeLeader(): string {
+    const sorted = this.getSortedWins();
+    if (sorted.length === 0) {
+      return "no results yet";
+    }
+    const [leaderId, leaderWins] = sorted[0]!;
+    const nextWins = sorted[1]?.[1];
+    if (typeof nextWins === "number" && leaderWins === nextWins) {
+      return "tie";
+    }
+    return `${leaderId} (${leaderWins})`;
   }
 
   private renderProgressBar(
@@ -209,16 +269,5 @@ export class PairwiseEvaluationRenderer implements ComparisonRenderer {
 
   private clearConsole(): void {
     process.stdout.write("\x1b[2J\x1b[H");
-  }
-
-  private describeBetterDataset(wins: {
-    A: number;
-    B: number;
-    tie: number;
-  }): string {
-    if (wins.A === wins.B) {
-      return "tie";
-    }
-    return wins.A > wins.B ? "dataset A" : "dataset B";
   }
 }

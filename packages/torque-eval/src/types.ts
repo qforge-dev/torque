@@ -22,6 +22,21 @@ export interface PairSample {
   rowB: IDatasetRow;
 }
 
+export interface DatasetComparisonTarget {
+  id: string;
+  dataset: DatasetSource;
+  label?: string;
+}
+
+export type DatasetCollection =
+  | Record<string, DatasetSource>
+  | ReadonlyArray<DatasetComparisonTarget>;
+
+export interface EloConfig {
+  initialRating?: number;
+  kFactor?: number;
+}
+
 export interface ScoreDatasetOptions {
   dataset: DatasetSource;
   sampleSize: number;
@@ -57,8 +72,7 @@ export interface ScoreDatasetResult {
 }
 
 export interface CompareDatasetsOptions {
-  datasetA: DatasetSource;
-  datasetB: DatasetSource;
+  datasets: DatasetCollection;
   sampleSize: number;
   judgeModel: JudgeModel;
   seed?: number;
@@ -69,9 +83,14 @@ export interface CompareDatasetsOptions {
   progressRenderer?: ComparisonRenderer;
   onProgress?: (progress: ComparisonProgress) => void;
   outputPath?: string;
+  resumeFrom?: string;
+  initialComparisons?: PairwiseComparison[];
+  elo?: EloConfig;
 }
 
-export type PairwiseWinner = "A" | "B" | "tie";
+export type JudgeDecision = "A" | "B" | "tie";
+
+export type PairwiseWinner = string | "tie";
 
 export type PairwiseRunOrder = "datasetA-first" | "datasetB-first";
 
@@ -79,13 +98,15 @@ export interface PairwiseComparisonRun {
   order: PairwiseRunOrder;
   prompt: string;
   response: string;
-  winner: PairwiseWinner;
+  winner: JudgeDecision;
   normalizedWinner: PairwiseWinner;
   rationale: string;
 }
 
 export interface PairwiseComparison {
   id: string;
+  datasetAId: string;
+  datasetBId: string;
   prompt: string;
   response: string;
   winner: PairwiseWinner;
@@ -95,14 +116,25 @@ export interface PairwiseComparison {
   runs: PairwiseComparisonRun[];
 }
 
+export interface DatasetPairSummary {
+  datasetAId: string;
+  datasetBId: string;
+  wins: Record<string, number> & { tie: number };
+  samples: number;
+}
+
+export interface DatasetLeaderboardEntry {
+  datasetId: string;
+  rating: number;
+  wins: number;
+  losses: number;
+  ties: number;
+}
+
 export interface CompareDatasetsResult {
   comparisons: PairwiseComparison[];
-  totals: {
-    A: number;
-    B: number;
-    tie: number;
-  };
-  preferred: PairwiseWinner;
+  pairs: DatasetPairSummary[];
+  leaderboard: DatasetLeaderboardEntry[];
   judgeModelId?: string;
 }
 
@@ -110,11 +142,8 @@ export interface ComparisonProgress {
   completed: number;
   inProgress: number;
   total: number;
-  wins: {
-    A: number;
-    B: number;
-    tie: number;
-  };
+  datasetWins: Record<string, number>;
+  ties: number;
 }
 
 export interface ComparisonRendererConfig {
@@ -123,11 +152,12 @@ export interface ComparisonRendererConfig {
   seed?: number;
   instructions?: string;
   judgeModelId?: string;
+  datasetIds: string[];
 }
 
 export interface ComparisonSummary {
-  totals: CompareDatasetsResult["totals"];
-  preferred: PairwiseWinner;
+  pairs: DatasetPairSummary[];
+  leaderboard: DatasetLeaderboardEntry[];
   outputPath?: string;
   durationMs: number;
   judgeModelId?: string;
