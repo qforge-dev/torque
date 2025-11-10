@@ -126,10 +126,12 @@ export function generatedAssistant({
 }
 
 export function generatedToolCall<T extends z.ZodObject>(
-  tool: IToolDefinition<T>,
+  tool: IToolDefinition<T> | IToolDefinition,
   id: string,
   options?: { reuseArgsFrom?: string; prompt?: string }
-): (context: IMessageSchemaContext) => Awaitable<IToolCallSchema<z.infer<T>>> {
+): (
+  context: IMessageSchemaContext
+) => Awaitable<IToolCallSchema<z.infer<T> | z.infer<typeof tool.parameters>>> {
   return async (context) => {
     const { phase } = context;
     const toolInstance = tool.toolFunction()(context);
@@ -167,7 +169,7 @@ export function generatedToolCallResult<
   T extends z.ZodObject = z.ZodObject,
   R extends z.ZodType = any
 >(
-  tool: IToolDefinition<T, R>,
+  tool: IToolDefinition<T, R> | IToolDefinition,
   id: string,
   options?: {
     prompt?: string;
