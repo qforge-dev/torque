@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { generateDataset, user, assistant } from "../index";
+import { generateDataset, user, assistant } from "@qforge/torque";
 
 await generateDataset(
   () => [

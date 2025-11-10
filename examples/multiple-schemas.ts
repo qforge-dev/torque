@@ -1,4 +1,4 @@
-import { generateDataset, user, assistant, generatedAssistant } from "../index";
+import { generateDataset, user, generatedAssistant } from "@qforge/torque";
 import { openai } from "@ai-sdk/openai";
 
 // Define two different conversation schemas

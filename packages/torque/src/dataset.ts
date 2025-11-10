@@ -20,7 +20,7 @@ import {
   getRandomCallCount,
   resetRandomCallCount,
 } from "./utils";
-import { type LanguageModel } from "ai";
+import { type LanguageModel, type ModelMessage } from "ai";
 import { createAiAgent, type IAiAgent } from "./ai";
 import { DatasetGenerationRenderer } from "./cli-renderer";
 import type {
@@ -30,8 +30,21 @@ import type {
 } from "./types";
 import { createWriter } from "./writer";
 import { TokenCounterPool } from "./token-counting/tokenCounterPool";
+import { hoistSystemMessages } from "./ai-message-order";
 
 const DEFAULT_TOKEN_COUNTER_WORKERS = 3;
+
+function withSystemMessageHoisting(aiAgent: IAiAgent): IAiAgent {
+  const orderMessages = (messages: ModelMessage[]) =>
+    hoistSystemMessages(messages);
+
+  return {
+    generateText: async (messages) =>
+      aiAgent.generateText(orderMessages(messages)),
+    generateObject: async (schema, messages) =>
+      aiAgent.generateObject(schema, orderMessages(messages)),
+  };
+}
 
 export async function generateDataset(
   schemas: ISchemaWithCount[],
@@ -257,7 +270,7 @@ async function generateDatasetRow(
   tokenCounterPool?: TokenCounterPool
 ): Promise<IDatasetRow> {
   const generateFn = async () => {
-    const aiAgent = createAiAgent({ model });
+    const aiAgent = withSystemMessageHoisting(createAiAgent({ model }));
     const baseMetadata = isMetadataObject(metadata) ? { ...metadata } : {};
 
     // First pass: Check structure
