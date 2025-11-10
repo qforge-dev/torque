@@ -17,7 +17,6 @@ import type {
 import {
   processBatchWithConcurrency,
   withSeed,
-  countTokens,
   getRandomCallCount,
   resetRandomCallCount,
 } from "./utils";
@@ -30,6 +29,9 @@ import type {
   IGenerateDatasetArgsMultiSchema,
 } from "./types";
 import { createWriter } from "./writer";
+import { TokenCounterPool } from "./token-counting/tokenCounterPool";
+
+const DEFAULT_TOKEN_COUNTER_WORKERS = 3;
 
 export async function generateDataset(
   schemas: ISchemaWithCount[],
@@ -56,6 +58,7 @@ export async function generateDataset(
     concurrency = 5,
     generationContext,
     metadata,
+    tokenCounterWorkers = DEFAULT_TOKEN_COUNTER_WORKERS,
   } = options;
 
   // Normalize input to array of schema-count-seed tuples
@@ -96,6 +99,16 @@ export async function generateDataset(
   });
 
   const generationStartTimestamp = new Date().toISOString();
+
+  const normalizedTokenCounterWorkers =
+    Number.isFinite(tokenCounterWorkers) && tokenCounterWorkers !== undefined
+      ? Math.max(0, Math.floor(tokenCounterWorkers))
+      : DEFAULT_TOKEN_COUNTER_WORKERS;
+
+  const tokenCounterPool =
+    normalizedTokenCounterWorkers > 0
+      ? new TokenCounterPool(normalizedTokenCounterWorkers)
+      : undefined;
 
   // Create task list with schema assignments
   type Task = {
@@ -142,7 +155,8 @@ export async function generateDataset(
           task.index,
           generationStartTimestamp,
           generationContext,
-          metadata
+          metadata,
+          tokenCounterPool
         );
 
         // Write row immediately after generation
@@ -176,6 +190,7 @@ export async function generateDataset(
   } finally {
     // Always close the writer
     await writer.close();
+    await tokenCounterPool?.destroy();
   }
 }
 
@@ -221,9 +236,7 @@ function mergeRowMetadata(
   return addition;
 }
 
-function buildSchemaColumn(
-  structure: IMessageSchemaStructure
-): IDatasetSchema {
+function buildSchemaColumn(structure: IMessageSchemaStructure): IDatasetSchema {
   return {
     metadata: { ...(structure.metadata ?? {}) },
     messages: structure.messages.map(({ message }) => ({ ...message })),
@@ -240,7 +253,8 @@ async function generateDatasetRow(
   generationId: number,
   generationStartTimestamp: string,
   generationContext?: GenerationContext,
-  metadata?: JsonValue
+  metadata?: JsonValue,
+  tokenCounterPool?: TokenCounterPool
 ): Promise<IDatasetRow> {
   const generateFn = async () => {
     const aiAgent = createAiAgent({ model });
@@ -296,8 +310,9 @@ async function generateDatasetRow(
       )
     );
 
-    // Count tokens
-    const tokenCount = countTokens(messages, tools);
+    const tokenCount = tokenCounterPool
+      ? await tokenCounterPool.countTokens({ messages, tools })
+      : undefined;
 
     // Add ID to metadata if seed is defined
     const metadataWithId =
@@ -308,7 +323,7 @@ async function generateDatasetRow(
     const rowMetadata = mergeRowMetadata(metadata, metadataWithId);
     const schemaColumn = buildSchemaColumn(structure);
 
-    return {
+    const row: IDatasetRow = {
       messages,
       tools,
       schema: schemaColumn,
@@ -320,10 +335,15 @@ async function generateDatasetRow(
             : `${model.provider}/${model.modelId}`,
         output: output,
         startTimestamp: generationStartTimestamp,
-        tokenCount,
         metadata: rowMetadata,
       },
     };
+
+    if (tokenCount) {
+      row.meta.tokenCount = tokenCount;
+    }
+
+    return row;
   };
 
   if (seed !== undefined) {

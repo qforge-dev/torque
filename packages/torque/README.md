@@ -175,6 +175,7 @@ await generateDataset(schema, {
 ```
 
 The ID combines the seed value with a deterministic hash, ensuring:
+
 - **Reproducibility**: Same seed always generates the same ID
 - **Uniqueness**: Different seeds produce different IDs
 - **Traceability**: Easy to reference specific examples in logs or when combining datasets
@@ -332,6 +333,20 @@ await generateDataset(schema, {
 - Useful for debugging, testing, and versioning datasets
 - If omitted, a random seed is generated and displayed in the CLI
 - Seeds control both `torque` random selections and AI model sampling (when supported by the provider)
+
+### Background Token Counting
+
+Token counts for each row are computed off the main thread using a Bun worker pool so dataset generation stays responsive. Configure the pool with `tokenCounterWorkers` (default: `3`), or disable counting entirely by setting it to `0`.
+
+```typescript
+await generateDataset(schema, {
+  count: 20,
+  model: openai("gpt-5-mini"),
+  tokenCounterWorkers: 5, // spawn 5 token-counting workers
+});
+```
+
+When Bun workers are unavailable, Torque automatically falls back to in-process counting to preserve the previous behaviour.
 
 ### Output Formats
 

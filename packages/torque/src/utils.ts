@@ -3,8 +3,6 @@ import { tool, type IToolDefinition } from "./schema";
 import { convertJsonSchemaToZod } from "zod-from-json-schema";
 import z, { type ZodTypeAny } from "zod";
 import { AsyncLocalStorage } from "async_hooks";
-import { encoding_for_model } from "tiktoken";
-import type { IDatasetMessage, IDatasetTool } from "./types";
 
 function resolveBaseSchema(schema: ZodTypeAny): ZodTypeAny {
   if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable) {
@@ -177,37 +175,4 @@ export function toolsToToolDefinitionArray(tools?: unknown): IToolDefinition[] {
       }),
     ];
   }, [] as IToolDefinition[]);
-}
-
-export function countTokens(
-  messages: IDatasetMessage[],
-  tools: IDatasetTool[],
-  model: string = "gpt-5"
-): { messages: number; tools: number; total: number } {
-  const encoding = encoding_for_model(model as any);
-
-  let messageTokens = 0;
-  let toolTokens = 0;
-
-  // Count tokens in messages
-  for (const message of messages) {
-    // Serialize the message to JSON for token counting
-    const messageStr = JSON.stringify(message);
-    messageTokens += encoding.encode(messageStr).length;
-  }
-
-  // Count tokens in tools
-  for (const tool of tools) {
-    // Serialize the tool to JSON for token counting
-    const toolStr = JSON.stringify(tool);
-    toolTokens += encoding.encode(toolStr).length;
-  }
-
-  encoding.free();
-
-  return {
-    messages: messageTokens,
-    tools: toolTokens,
-    total: messageTokens + toolTokens,
-  };
 }

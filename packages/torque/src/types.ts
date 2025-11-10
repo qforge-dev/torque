@@ -224,6 +224,7 @@ interface IGenerateDatasetBaseArgs {
   format?: DatasetFormat;
   model: LanguageModel;
   concurrency?: number;
+  tokenCounterWorkers?: number;
   generationContext?: GenerationContext;
   metadata?: JsonValue;
 }
