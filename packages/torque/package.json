@@ -1,6 +1,6 @@
 {
   "name": "@qforge/torque",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Like React, but for datasets - A declarative, typesafe DSL for building LLM training datasets",
   "type": "module",
   "main": "./dist/index.js",
