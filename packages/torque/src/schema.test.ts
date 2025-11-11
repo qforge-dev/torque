@@ -1,8 +1,16 @@
 import { describe, expect, it } from "bun:test";
-import { metadata } from "./schema";
+import {
+  metadata,
+  reasoning,
+  generatedReasoning,
+  generatedAssistant,
+  assistant,
+} from "./schema";
 import { oneOf } from "./schema-rng";
 import type { IMessageSchemaContext } from "./types";
 import { withSeed } from "./utils";
+import { MockLanguageModelV2 } from "ai/test";
+import { AiAgent } from "./ai";
 
 describe("oneOf", () => {
   it("spreads remaining weight across unweighted options", async () => {
@@ -160,5 +168,175 @@ describe("metadata helper", () => {
       count: 1,
       variant: "test",
     });
+  });
+});
+
+describe("reasoning", () => {
+  it("creates static reasoning schema", async () => {
+    const reasoningSchema = reasoning({
+      content: "I need to think about this carefully.",
+    });
+    const context: IMessageSchemaContext = {
+      acc: { messages: [], tools: [], metadata: {} },
+      ai: {} as any,
+      structure: { messages: [], tools: [], metadata: {} },
+      phase: "generate",
+    };
+
+    const result = await reasoningSchema(context);
+
+    expect(result).toMatchObject({
+      text: "I need to think about this carefully.",
+    });
+    expect(result.generationId).toBeDefined();
+  });
+
+  it("creates generated reasoning schema in check phase", async () => {
+    const reasoningSchema = generatedReasoning({
+      prompt: "Reason about the user's request",
+    });
+    const context: IMessageSchemaContext = {
+      acc: { messages: [], tools: [], metadata: {} },
+      ai: {} as any,
+      structure: { messages: [], tools: [], metadata: {} },
+      phase: "check",
+    };
+
+    const result = await reasoningSchema(context);
+
+    expect(result).toMatchObject({
+      text: "Reason about the user's request",
+    });
+    expect(result.generationId).toBeDefined();
+  });
+
+  it("generates reasoning in generate phase", async () => {
+    const mockModel = new MockLanguageModelV2({
+      doGenerate: async () => ({
+        content: [
+          {
+            type: "text",
+            text: "The user is asking about the weather, so I should provide a helpful response.",
+          },
+        ],
+        finishReason: "stop",
+        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        warnings: [],
+        rawResponse: { headers: {} },
+      }),
+    });
+
+    const aiAgent = new AiAgent({ model: mockModel });
+    const reasoningSchema = generatedReasoning({
+      prompt: "Reason about the weather question",
+    });
+
+    const context: IMessageSchemaContext = {
+      acc: { messages: [], tools: [], metadata: {} },
+      ai: aiAgent,
+      structure: { messages: [], tools: [], metadata: {} },
+      phase: "generate",
+    };
+
+    const result = await reasoningSchema(context);
+
+    expect(result.text).toBe(
+      "The user is asking about the weather, so I should provide a helpful response."
+    );
+    expect(result.generationId).toBeDefined();
+  });
+
+  it("includes reasoning in generatedAssistant", async () => {
+    const mockModel = new MockLanguageModelV2({
+      doGenerate: async () => ({
+        content: [
+          {
+            type: "text",
+            text: "Generated reasoning or response",
+          },
+        ],
+        finishReason: "stop",
+        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        warnings: [],
+        rawResponse: { headers: {} },
+      }),
+    });
+
+    const aiAgent = new AiAgent({ model: mockModel });
+
+    const assistantSchema = generatedAssistant({
+      prompt: "Respond to the user",
+      reasoning: reasoning({ content: "Static reasoning content" }),
+    });
+
+    const context: IMessageSchemaContext = {
+      acc: { messages: [], tools: [], metadata: {} },
+      ai: aiAgent,
+      structure: { messages: [], tools: [], metadata: {} },
+      phase: "generate",
+    };
+
+    const result = await assistantSchema(context);
+
+    expect(result.role).toBe("assistant");
+    expect(result.content).toBe("Generated reasoning or response");
+    expect(result.reasoning).toBeDefined();
+    expect(result.generationId).toBeDefined();
+  });
+
+  it("reasoning is included in the assistant message result", async () => {
+    const mockModel = new MockLanguageModelV2({
+      doGenerate: async () => {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "Response with reasoning",
+            },
+          ],
+          finishReason: "stop",
+          usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+          warnings: [],
+          rawResponse: { headers: {} },
+        };
+      },
+    });
+
+    const aiAgent = new AiAgent({ model: mockModel });
+
+    const assistantSchema = generatedAssistant({
+      prompt: "Respond to greeting",
+      reasoning: reasoning({ content: "The user greeted me politely" }),
+    });
+
+    const context: IMessageSchemaContext = {
+      acc: { messages: [], tools: [], metadata: {} },
+      ai: aiAgent,
+      structure: { messages: [], tools: [], metadata: {} },
+      phase: "generate",
+    };
+
+    const result = await assistantSchema(context);
+
+    expect(result.content).toBe("Response with reasoning");
+    // Verify that reasoning was resolved and is part of the result
+    expect(result.reasoning).toBeDefined();
+    expect(result.reasoning?.text).toBe("The user greeted me politely");
+  });
+
+  it("reasoning can be used with both static and generated assistant", async () => {
+    const staticAssistant = assistant({ content: "Hello there!" });
+    const context: IMessageSchemaContext = {
+      acc: { messages: [], tools: [], metadata: {} },
+      ai: {} as any,
+      structure: { messages: [], tools: [], metadata: {} },
+      phase: "generate",
+    };
+
+    const result = await staticAssistant(context);
+
+    expect(result.role).toBe("assistant");
+    expect(result.content).toBe("Hello there!");
+    expect(result.reasoning).toBeUndefined();
   });
 });

@@ -36,7 +36,11 @@ await generateDataset(
     oneOf([
       // pick one randomly (weights are optional)
       { value: assistant({ content: "Hello!" }), weight: 0.3 }, // static
-      generatedAssistant({ prompt: "Respond to greeting" }), // AI generated, gets remaining weight
+      generatedAssistant({
+        prompt: "Respond to greeting",
+        reasoning: generatedReasoning({ prompt: "Reason about the greeting" }),
+        // or reasoning: reasoning({ content: "...." }),
+      }), // AI generated, gets remaining weight
     ]),
     times(between(1, 3), [
       generatedUser({

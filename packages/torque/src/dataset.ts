@@ -718,6 +718,14 @@ async function convertMessageSchemaToDatasetMessage(
       };
       acc.messages.push(datasetMessage);
     } else if (message.role === "assistant") {
+      // Handle reasoning if present
+      let reasoningPart: { type: "reasoning"; text: string } | undefined;
+      if (message.reasoning) {
+        reasoningPart = {
+          type: "reasoning" as const,
+          text: message.reasoning.text,
+        };
+      }
       if (message.toolCalls && message.toolCalls.length > 0) {
         const toolCallParts: IToolCallSchema<any>[] = [];
         for (const tc of message.toolCalls) {
@@ -725,31 +733,53 @@ async function convertMessageSchemaToDatasetMessage(
           toolCallParts.push(toolCall);
         }
 
-        logStep("assistant message with tool calls");
+        logStep(
+          reasoningPart
+            ? "assistant message with reasoning and tool calls"
+            : "assistant message with tool calls"
+        );
 
         const textPart = { type: "text" as const, text: message.content };
+        const contentParts = [
+          ...(reasoningPart ? [reasoningPart] : []),
+          textPart,
+          ...toolCallParts.map((tc) => ({
+            type: "tool-call" as const,
+            toolCallId: tc.toolCallId,
+            toolName: tc.toolName,
+            input: tc.arguments,
+          })),
+        ];
+
         const datasetMessage = {
           generationId: message.generationId,
           role: "assistant" as const,
-          content: [
-            textPart,
-            ...toolCallParts.map((tc) => ({
-              type: "tool-call" as const,
-              toolCallId: tc.toolCallId,
-              toolName: tc.toolName,
-              input: tc.arguments,
-            })),
-          ],
+          content: contentParts,
         };
         acc.messages.push(datasetMessage);
       } else {
-        logStep("assistant message");
-        const datasetMessage = {
-          generationId: message.generationId,
-          role: "assistant" as const,
-          content: message.content,
-        };
-        acc.messages.push(datasetMessage);
+        logStep(
+          reasoningPart
+            ? "assistant message with reasoning"
+            : "assistant message"
+        );
+
+        if (reasoningPart) {
+          const textPart = { type: "text" as const, text: message.content };
+          const datasetMessage = {
+            generationId: message.generationId,
+            role: "assistant" as const,
+            content: [reasoningPart, textPart],
+          };
+          acc.messages.push(datasetMessage);
+        } else {
+          const datasetMessage = {
+            generationId: message.generationId,
+            role: "assistant" as const,
+            content: message.content,
+          };
+          acc.messages.push(datasetMessage);
+        }
       }
     } else if (message.role === "system") {
       logStep("system message");

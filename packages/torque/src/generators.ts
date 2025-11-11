@@ -57,6 +57,66 @@ export interface GeneratedMessageResult {
   generationId: string;
 }
 
+interface GenerateReasoningOptions {
+  prompt: string;
+  context: IMessageSchemaContext;
+}
+
+export async function generateReasoningFromPrompt({
+  prompt,
+  context,
+}: GenerateReasoningOptions): Promise<GeneratedMessageResult> {
+  const { acc, ai, generationContext } = context;
+  const generatedLocalId = createGenerationId("reasoning");
+
+  const systemPrompt = `You are a synthetic dataset generator creating realistic reasoning for an assistant message.
+
+## Your Task
+Generate realistic reasoning that the assistant uses to think through their response.
+This reasoning represents the assistant's internal thought process before crafting their reply.
+
+## Understanding the Conversation Flow
+Below you'll see the complete conversation flow. Each item is EITHER:
+- An actual generated message (already created) - use this as concrete context
+- A schema/structure definition (not yet generated) - use this to understand what's planned next
+
+**IMPORTANT: Generate reasoning for the assistant message that will be generated next.**
+
+Messages and structure:
+${formatMessagesAndStructure(context)}
+
+Available tools:
+${JSON.stringify(acc.tools, null, 2)}
+`;
+
+  const userPrompt = `Generate reasoning for the assistant's upcoming response based on this prompt:
+
+${prompt}
+
+Important: 
+- Maintain continuity with previous messages and align with the planned conversation flow
+- Generate thoughtful, realistic reasoning that demonstrates the assistant's thinking process
+- Only generate the reasoning content, do not include any meta-commentary or explanation
+- Generate in first person, as it is your inner thoughts and you are the assistant thinking about the response`;
+
+  const contextMessages = await resolveGenerationContextMessages(
+    generationContext,
+    "assistant",
+    context
+  );
+
+  const result = await ai.generateText([
+    { role: "system", content: systemPrompt },
+    ...contextMessages,
+    { role: "user", content: userPrompt },
+  ]);
+
+  return {
+    text: result.text,
+    generationId: result.response?.id ?? generatedLocalId,
+  };
+}
+
 export async function generateMessageFromPrompt({
   role,
   prompt,

@@ -10,12 +10,14 @@ import type {
   IToolCallSchema,
   IToolFunctionSchema,
   IUserMessageSchema,
+  IReasoningSchema,
 } from "./types";
 import { createGenerationId, type Awaitable } from "./utils";
 import {
   generateMessageFromPrompt,
   generateToolCallArgs,
   generateToolResult,
+  generateReasoningFromPrompt,
 } from "./generators";
 
 export function system({
@@ -77,6 +79,45 @@ export function generatedUser({
   };
 }
 
+export function reasoning({
+  content,
+}: {
+  content: string;
+}): (context: IMessageSchemaContext) => Awaitable<IReasoningSchema> {
+  return (_context) => ({
+    text: content,
+    generationId: createGenerationId("reasoning"),
+  });
+}
+
+export function generatedReasoning({
+  prompt,
+}: {
+  prompt: string;
+}): (context: IMessageSchemaContext) => Awaitable<IReasoningSchema> {
+  return async (context) => {
+    const { phase } = context;
+
+    if (phase === "check") {
+      const generatedLocalId = createGenerationId("reasoning-check");
+      return {
+        text: prompt,
+        generationId: generatedLocalId,
+      };
+    }
+
+    const { text, generationId } = await generateReasoningFromPrompt({
+      prompt,
+      context,
+    });
+
+    return {
+      text,
+      generationId,
+    };
+  };
+}
+
 export function assistant({
   content,
 }: {
@@ -92,20 +133,28 @@ export function assistant({
 export function generatedAssistant({
   prompt,
   toolCalls,
+  reasoning,
 }: {
   prompt: string;
   toolCalls?: Array<
     (context: IMessageSchemaContext) => Awaitable<IToolCallSchema>
   >;
+  reasoning?: (context: IMessageSchemaContext) => Awaitable<IReasoningSchema>;
 }): (context: IMessageSchemaContext) => Awaitable<IAssistantMessageSchema> {
   return async (context) => {
     const { phase } = context;
+
+    let resolvedReasoning: IReasoningSchema | undefined;
+    if (reasoning) {
+      resolvedReasoning = await reasoning(context);
+    }
 
     if (phase === "check") {
       return {
         role: "assistant",
         content: prompt,
         toolCalls,
+        reasoning: resolvedReasoning,
         generationId: createGenerationId("assistant-check"),
       };
     }
@@ -120,6 +169,7 @@ export function generatedAssistant({
       role: "assistant",
       content: text,
       toolCalls,
+      reasoning: resolvedReasoning,
       generationId,
     };
   };

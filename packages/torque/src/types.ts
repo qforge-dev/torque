@@ -130,12 +130,18 @@ export interface IUserMessageSchema {
   generationId: string;
 }
 
+export interface IReasoningSchema {
+  text: string;
+  generationId: string;
+}
+
 export interface IAssistantMessageSchema {
   role: "assistant";
   content: string;
   toolCalls?: Array<
     (context: IMessageSchemaContext) => Awaitable<IToolCallSchema>
   >;
+  reasoning?: IReasoningSchema;
   generationId: string;
 }
 
