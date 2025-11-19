@@ -58,6 +58,7 @@ export class ChatTemplateFormatter implements IDatasetFormatter {
       if (msg.role === "assistant") {
         const toolCalls: any[] = [];
         let contentString = "";
+        let reasoningString = "";
 
         if (Array.isArray(msg.content)) {
           for (const part of msg.content) {
@@ -72,8 +73,11 @@ export class ChatTemplateFormatter implements IDatasetFormatter {
               });
             } else if (part.type === "text") {
               contentString += part.text;
+            } else if (part.type === "reasoning") {
+              // ai sdk types might vary but usually it's text or reasoning
+              reasoningString +=
+                (part as any).text || (part as any).reasoning || "";
             }
-            // Skip reasoning for chat_template
           }
         } else if (typeof msg.content === "string") {
           contentString = msg.content;
@@ -85,6 +89,9 @@ export class ChatTemplateFormatter implements IDatasetFormatter {
         };
         if (toolCalls.length > 0) {
           newMsg.tool_calls = toolCalls;
+        }
+        if (reasoningString) {
+          newMsg.reasoning = reasoningString;
         }
         return [newMsg];
       }

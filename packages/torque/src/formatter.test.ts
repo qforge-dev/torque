@@ -5,9 +5,22 @@ import type { IDatasetRow } from "./types";
 describe("ChatTemplateFormatter", () => {
   const formatter = new ChatTemplateFormatter();
 
-  it("should transform tools to OpenAI format", () => {
-    const row: IDatasetRow = {
+  const createMockRow = (
+    overrides: Partial<IDatasetRow> = {}
+  ): IDatasetRow => ({
+    messages: [],
+    tools: [],
+    schema: {
+      metadata: {},
       messages: [],
+      tools: [],
+    },
+    meta: {},
+    ...overrides,
+  });
+
+  it("should transform tools to OpenAI format", () => {
+    const row = createMockRow({
       tools: [
         {
           name: "calculator",
@@ -20,9 +33,7 @@ describe("ChatTemplateFormatter", () => {
           output: {},
         },
       ],
-      schema: {} as any,
-      meta: {} as any,
-    };
+    });
 
     const result = formatter.format(row);
     expect(result.tools).toHaveLength(1);
@@ -41,7 +52,7 @@ describe("ChatTemplateFormatter", () => {
   });
 
   it("should transform user messages", () => {
-    const row: IDatasetRow = {
+    const row = createMockRow({
       messages: [
         {
           role: "user",
@@ -49,10 +60,7 @@ describe("ChatTemplateFormatter", () => {
           generationId: "1",
         },
       ],
-      tools: [],
-      schema: {} as any,
-      meta: {} as any,
-    };
+    });
 
     const result = formatter.format(row);
     expect(result.messages).toHaveLength(1);
@@ -63,7 +71,7 @@ describe("ChatTemplateFormatter", () => {
   });
 
   it("should transform assistant messages with tool calls", () => {
-    const row: IDatasetRow = {
+    const row = createMockRow({
       messages: [
         {
           role: "assistant",
@@ -77,12 +85,9 @@ describe("ChatTemplateFormatter", () => {
             },
           ],
           generationId: "1",
-        } as any, // Casting because IDatasetMessage content type is strict in tests
+        },
       ],
-      tools: [],
-      schema: {} as any,
-      meta: {} as any,
-    };
+    });
 
     const result = formatter.format(row);
     expect(result.messages).toHaveLength(1);
@@ -102,8 +107,31 @@ describe("ChatTemplateFormatter", () => {
     });
   });
 
+  it("should transform assistant messages with reasoning", () => {
+    const row = createMockRow({
+      messages: [
+        {
+          role: "assistant",
+          content: [
+            { type: "reasoning", text: "I should check the weather." },
+            { type: "text", text: "Checking weather..." },
+          ],
+          generationId: "1",
+        },
+      ],
+    });
+
+    const result = formatter.format(row);
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0]).toEqual({
+      role: "assistant",
+      content: "Checking weather...",
+      reasoning: "I should check the weather.",
+    });
+  });
+
   it("should flatten tool result messages", () => {
-    const row: IDatasetRow = {
+    const row = createMockRow({
       messages: [
         {
           role: "tool",
@@ -112,24 +140,19 @@ describe("ChatTemplateFormatter", () => {
               type: "tool-result",
               toolCallId: "call_1",
               toolName: "calc",
-              result: 2,
-              output: 2, // dataset.ts populates output
+              output: { type: "text", value: "2" }, // dataset.ts populates output
             },
             {
               type: "tool-result",
               toolCallId: "call_2",
               toolName: "calc",
-              result: 4,
-              output: 4,
+              output: { type: "text", value: "4" },
             },
           ],
           generationId: "1",
-        } as any,
+        },
       ],
-      tools: [],
-      schema: {} as any,
-      meta: {} as any,
-    };
+    });
 
     const result = formatter.format(row);
     expect(result.messages).toHaveLength(2);
