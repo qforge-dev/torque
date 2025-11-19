@@ -71,22 +71,22 @@ describe("oneOf", () => {
 
   it("enforces uniqueBy across calls", async () => {
     const options = [
-      { value: { id: "a" } },
-      { value: { id: "b" } },
-      { value: { id: "c" } },
+      { id: "a", value: "a" },
+      { id: "b", value: "b" },
+      { id: "c", value: "c" },
     ];
 
     await runWithUniqueSelectionScope(async () => {
       const picks = [
         oneOf([...options], {
-          uniqueBy: { collection: "tools", itemId: "id" },
-        }).id,
+          uniqueBy: { collection: "tools" },
+        }),
         oneOf([...options], {
-          uniqueBy: { collection: "tools", itemId: "id" },
-        }).id,
+          uniqueBy: { collection: "tools" },
+        }),
         oneOf([...options], {
-          uniqueBy: { collection: "tools", itemId: "id" },
-        }).id,
+          uniqueBy: { collection: "tools" },
+        }),
       ];
 
       expect(new Set(picks).size).toBe(3);
@@ -95,68 +95,49 @@ describe("oneOf", () => {
 
   it("throws when a unique collection is exhausted", async () => {
     const options = [
-      { value: { id: "only" } },
-      { value: { id: "only" } },
+      { id: "only", value: "only" },
+      { id: "only", value: "only" },
     ] as const;
 
     await runWithUniqueSelectionScope(async () => {
       oneOf([...options], {
-        uniqueBy: { collection: "limited", itemId: "id" },
+        uniqueBy: { collection: "limited" },
       });
 
       expect(() =>
         oneOf([...options], {
-          uniqueBy: { collection: "limited", itemId: "id" },
+          uniqueBy: { collection: "limited" },
         })
       ).toThrow('oneOf uniqueBy collection "limited" is exhausted');
     });
   });
 
-  it("supports functional unique key extractors", async () => {
+  it("works with uniqueBy and weight together", async () => {
     const options = [
-      { value: { tool: { name: "weather" } } },
-      { value: { tool: { name: "calendar" } } },
+      { id: "a", value: "A", weight: 0.5 },
+      { id: "b", value: "B", weight: 0.3 },
+      { id: "c", value: "C", weight: 0.2 },
     ];
 
     await runWithUniqueSelectionScope(async () => {
-      const first = oneOf([...options], {
-        uniqueBy: {
-          collection: "tools",
-          itemId: (value) => value.tool.name,
-        },
+      await withSeed(100, async () => {
+        const first = oneOf([...options], {
+          uniqueBy: { collection: "weighted-unique" },
+        });
+        expect(["A", "B", "C"]).toContain(first);
+
+        const second = oneOf([...options], {
+          uniqueBy: { collection: "weighted-unique" },
+        });
+        expect(["A", "B", "C"]).toContain(second);
+        expect(second).not.toBe(first);
+
+        const third = oneOf([...options], {
+          uniqueBy: { collection: "weighted-unique" },
+        });
+        expect(["A", "B", "C"]).toContain(third);
+        expect(new Set([first, second, third]).size).toBe(3);
       });
-
-      expect(first.tool.name).toMatch(/weather|calendar/);
-
-      const second = oneOf([...options], {
-        uniqueBy: {
-          collection: "tools",
-          itemId: (value) => value.tool.name,
-        },
-      });
-
-      expect(second.tool.name).not.toBe(first.tool.name);
-    });
-  });
-
-  it("requires uniqueBy when unique is enabled", () => {
-    expect(() =>
-      oneOf([{ value: "a" }, { value: "b" }], { unique: true })
-    ).toThrow("oneOf unique mode requires a uniqueBy option");
-  });
-
-  it("defaults uniqueBy itemId to 'id' when omitted", async () => {
-    const options = [{ value: { id: "alpha" } }, { value: { id: "beta" } }];
-
-    await runWithUniqueSelectionScope(async () => {
-      const first = oneOf([...options], {
-        uniqueBy: { collection: "tools" },
-      }).id;
-      const second = oneOf([...options], {
-        uniqueBy: { collection: "tools" },
-      }).id;
-
-      expect(new Set([first, second]).size).toBe(2);
     });
   });
 });

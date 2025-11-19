@@ -4,30 +4,29 @@ import { getCurrentMessageContext } from "./message-context";
 import { hasValueBeenUsed, markValueAsUsed } from "./unique-selection";
 import { random } from "./utils";
 
-type PrimitiveKey = string | number | boolean;
-type UniqueIdentifierResolver<T> =
-  | keyof any
-  | ((value: T) => PrimitiveKey | null | undefined);
-
-export interface OneOfUniqueBy<T> {
+export interface OneOfUniqueBy {
   collection: string;
-  itemId?: UniqueIdentifierResolver<T>;
 }
 
 export interface OneOfOptions<T> {
-  unique?: boolean;
-  uniqueBy?: OneOfUniqueBy<T>;
+  uniqueBy?: OneOfUniqueBy;
 }
 
 type NormalizedWeightedOption<T> = {
   value: T;
   weight?: number;
+  id?: string | number | boolean;
   uniqueKey?: string;
 };
 
-type ResolvedUniqueBy<T> = {
+type ResolvedUniqueBy = {
   collection: string;
-  itemId: UniqueIdentifierResolver<T>;
+};
+
+export type OneOfOptionWithId<T> = {
+  value: T;
+  id: string | number | boolean;
+  weight?: number;
 };
 
 export function optional<T>(message: T): T | (() => []) {
@@ -59,6 +58,15 @@ export function randomSample<T>(n: number, array: T[]): T[] {
 
   return result;
 }
+
+export function oneOf<T>(
+  options: Array<OneOfOptionWithId<T>>,
+  config: { uniqueBy: OneOfUniqueBy }
+): T;
+export function oneOf<T>(
+  options: Array<WeightedOneOfOption<T>>,
+  config?: { uniqueBy?: never }
+): T;
 export function oneOf<T>(
   options: Array<WeightedOneOfOption<T>>,
   config?: OneOfOptions<T>
@@ -67,16 +75,8 @@ export function oneOf<T>(
     throw new Error("oneOf requires at least one option");
   }
 
-  const rawUniqueBy = config?.uniqueBy;
-  const enforceUnique = Boolean(config?.unique ?? rawUniqueBy);
-
-  if (enforceUnique && !rawUniqueBy) {
-    throw new Error(
-      "oneOf unique mode requires a uniqueBy option with a collection name"
-    );
-  }
-
-  const uniqueBy = resolveUniqueBy(rawUniqueBy);
+  const uniqueBy = resolveUniqueBy(config?.uniqueBy);
+  const enforceUnique = Boolean(uniqueBy);
 
   const normalized = options.map((option) =>
     isWeightedOption(option) ? { ...option } : { value: option }
@@ -123,10 +123,13 @@ export function oneOf<T>(
     }
   }
 
-  const candidateBase = normalized.map<NormalizedWeightedOption<T>>((option) => ({
-    value: option.value,
-    weight: option.weight,
-  }));
+  const candidateBase = normalized.map<NormalizedWeightedOption<T>>(
+    (option) => ({
+      value: option.value,
+      weight: option.weight,
+      id: option.id,
+    })
+  );
 
   let candidateOptions = candidateBase;
 
@@ -134,7 +137,7 @@ export function oneOf<T>(
     candidateOptions = candidateBase
       .map((option) => ({
         ...option,
-        uniqueKey: buildUniqueKey(option.value, uniqueBy),
+        uniqueKey: buildUniqueKey(option.id),
       }))
       .filter(
         (option) => !hasValueBeenUsed(uniqueBy.collection, option.uniqueKey!)
@@ -185,7 +188,7 @@ export function oneOf<T>(
 
 function recordUniqueSelection<T>(
   option: NormalizedWeightedOption<T>,
-  uniqueBy: ResolvedUniqueBy<T> | undefined,
+  uniqueBy: ResolvedUniqueBy | undefined,
   enforceUnique: boolean
 ): void {
   if (!enforceUnique || !uniqueBy || !option.uniqueKey) {
@@ -200,51 +203,26 @@ function recordUniqueSelection<T>(
   markValueAsUsed(uniqueBy.collection, option.uniqueKey);
 }
 
-function buildUniqueKey<T>(
-  value: T,
-  uniqueBy: ResolvedUniqueBy<T>
-): string {
-  const rawValue =
-    typeof uniqueBy.itemId === "function"
-      ? uniqueBy.itemId(value)
-      : readProperty(value, uniqueBy.itemId);
-
+function buildUniqueKey(id: unknown): string {
   if (
-    rawValue === undefined ||
-    rawValue === null ||
-    (typeof rawValue !== "string" &&
-      typeof rawValue !== "number" &&
-      typeof rawValue !== "boolean")
+    id === undefined ||
+    id === null ||
+    (typeof id !== "string" &&
+      typeof id !== "number" &&
+      typeof id !== "boolean")
   ) {
     throw new Error(
-      `oneOf uniqueBy.itemId "${String(
-        uniqueBy.itemId
-      )}" must resolve to a string, number, or boolean`
+      `oneOf uniqueBy requires options to be objects with a valid "id" property (string, number, or boolean)`
     );
   }
 
-  const prefix = typeof rawValue;
-  return `${prefix}:${String(rawValue)}`;
+  const prefix = typeof id;
+  return `${prefix}:${String(id)}`;
 }
 
-function readProperty<T>(value: T, key: keyof any): unknown {
-  if (
-    value === null ||
-    (typeof value !== "object" && typeof value !== "function")
-  ) {
-    throw new Error(
-      `oneOf uniqueBy.itemId "${String(
-        key
-      )}" requires the option value to be an object or function`
-    );
-  }
-
-  return (value as any)[key];
-}
-
-function resolveUniqueBy<T>(
-  uniqueBy?: OneOfUniqueBy<T>
-): ResolvedUniqueBy<T> | undefined {
+function resolveUniqueBy(
+  uniqueBy?: OneOfUniqueBy
+): ResolvedUniqueBy | undefined {
   if (!uniqueBy) {
     return undefined;
   }
@@ -258,10 +236,7 @@ function resolveUniqueBy<T>(
     throw new Error("oneOf uniqueBy.collection must be a non-empty string");
   }
 
-  const itemId = uniqueBy.itemId ?? ("id" as UniqueIdentifierResolver<T>);
-
   return {
     collection,
-    itemId,
   };
 }

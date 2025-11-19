@@ -430,11 +430,12 @@ export type WeightedOneOfOption<T> =
   | {
       value: T;
       weight?: number;
+      id?: string | number | boolean;
     };
 
 export function isWeightedOption<T>(
   option: WeightedOneOfOption<T>
-): option is { value: T; weight?: number } {
+): option is { value: T; weight?: number; id?: string | number | boolean } {
   return typeof option === "object" && option !== null && "value" in option;
 }
 
