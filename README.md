@@ -3,6 +3,7 @@
 **Torque** is a declarative, fully typesafe DSL for quickly building complex LLM synthetic datasets. Compose conversations like components, generate realistic variations with any model efficiently.
 
 [![npm version](https://img.shields.io/npm/v/@qforge/torque.svg)](https://www.npmjs.com/package/@qforge/torque)
+[![CI](https://img.shields.io/github/actions/workflow/status/qforge-dev/torque/torque-compile-and-dry-run.yml?branch=main&label=CI)](https://github.com/qforge-dev/torque/actions/workflows/torque-compile-and-dry-run.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -175,6 +176,7 @@ await generateDataset(schema, {
 ```
 
 The ID combines the seed value with a deterministic hash, ensuring:
+
 - **Reproducibility**: Same seed always generates the same ID
 - **Uniqueness**: Different seeds produce different IDs
 - **Traceability**: Easy to reference specific examples in logs or when combining datasets
