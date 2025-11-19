@@ -1,4 +1,4 @@
-name: Test Torque
+name: Torque Compile and Dry Run
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  dry-run:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,3 +27,10 @@ jobs:
 
       - name: Run tests
         run: bun test
+
+      - name: Build package
+        run: bun run --filter @qforge/torque build
+
+      - name: Publish dry run
+        run: npm publish --dry-run
+        working-directory: packages/torque

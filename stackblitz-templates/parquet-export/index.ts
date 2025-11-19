@@ -1,7 +1,7 @@
 
 
 import { openai } from "@ai-sdk/openai";
-import { generateDataset, user, assistant } from "@qforge/torqueindex";
+import { generateDataset, user, assistant } from "@qforge/torque";
 await generateDataset(
   () => [
     user({ content: "Hello, how are you?" }),

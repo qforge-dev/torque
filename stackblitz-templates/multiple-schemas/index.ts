@@ -1,6 +1,6 @@
 
 
-import { generateDataset, user, assistant, generatedAssistant } from "@qforge/torqueindex";
+import { generateDataset, user, generatedAssistant } from "@qforge/torque";
 import { openai } from "@ai-sdk/openai";
 // Define two different conversation schemas
 const customerSupportSchema = () => [

@@ -80,8 +80,8 @@ await generateDataset(
     return [
       selectedTool.toolFunction(),
       generatedUser({ prompt: "Ask question requiring this tool" }),
-      generatedToolCall(selectedTool as any, "t1"),
-      generatedToolCallResult(selectedTool as any, "t1"),
+      generatedToolCall(selectedTool, "t1"),
+      generatedToolCallResult(selectedTool, "t1"),
       generatedAssistant({ prompt: "Present the result" }),
     ];
   },
