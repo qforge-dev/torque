@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
   random,
   getRandomCallCount,
@@ -9,8 +9,27 @@ import { generateDataset } from "./dataset";
 import type { IMessageSchema, IMessageSchemaContext } from "./types";
 import { user, assistant, times, generatedToolCall, tool } from "./schema";
 import { between, oneOf } from "./schema-rng";
-import { openai } from "@ai-sdk/openai";
+import { MockLanguageModelV2 } from "ai/test";
 import z from "zod";
+
+export const mockModel = (
+  response: { type: "text"; text: string }[] = [
+    {
+      type: "text",
+      text: "mock response",
+    },
+  ]
+) => {
+  return new MockLanguageModelV2({
+    doGenerate: async () => ({
+      content: response,
+      finishReason: "stop",
+      usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+      warnings: [],
+      rawResponse: { headers: {} },
+    }),
+  });
+};
 
 describe("seed tracking", () => {
   it("tracks random call count", async () => {
@@ -88,7 +107,7 @@ describe("seed skewing detection", () => {
 
     // The error is caught by the batch processor, so it returns an empty array
     const result = await generateDataset(skewedSchema, {
-      model: openai("gpt-4"),
+      model: mockModel(),
       count: 1,
       seed: 42,
       output: "/tmp/seed-skew-test.jsonl",
@@ -119,7 +138,7 @@ describe("seed skewing detection", () => {
 
     // Should fail with empty result due to skewing at second message
     const result = await generateDataset(skewedSchema, {
-      model: openai("gpt-4"),
+      model: mockModel(),
       count: 1,
       seed: 42,
       output: "/tmp/seed-skew-step-test.jsonl",
@@ -141,7 +160,7 @@ describe("seed skewing detection", () => {
 
     // This should not throw
     const result = await generateDataset(consistentSchema, {
-      model: openai("gpt-4"),
+      model: mockModel(),
       count: 1,
       seed: 42,
       output: "/tmp/seed-consistent-test.jsonl",
@@ -162,7 +181,7 @@ describe("seed skewing detection", () => {
 
     // This should not throw because oneOf uses random() consistently
     const result = await generateDataset(schemaWithOneOf, {
-      model: openai("gpt-4"),
+      model: mockModel(),
       count: 1,
       seed: 42,
       output: "/tmp/seed-oneof-test.jsonl",
@@ -181,7 +200,7 @@ describe("seed does not skew", () => {
     ];
 
     const result = await generateDataset(schema, {
-      model: openai("gpt-4"),
+      model: mockModel(),
       count: 1,
       seed: 42,
       output: "/tmp/seed-oneof-test.jsonl",
@@ -197,7 +216,7 @@ describe("seed does not skew", () => {
     ];
 
     const result = await generateDataset(schema, {
-      model: openai("gpt-4"),
+      model: mockModel(),
       count: 1,
       seed: 42,
       output: "/tmp/seed-times-test.jsonl",
@@ -207,22 +226,14 @@ describe("seed does not skew", () => {
 
   it("flattens nested schema arrays produced by helpers", async () => {
     const schema: IMessageSchema = async () => [
-      [
-        user({ content: "Hello" }),
-        [
-          assistant({ content: "Hi there" }),
-        ],
-      ],
+      [user({ content: "Hello" }), [assistant({ content: "Hi there" })]],
       times(2, [
-        [
-          user({ content: "Nested" }),
-          assistant({ content: "Response" }),
-        ],
+        [user({ content: "Nested" }), assistant({ content: "Response" })],
       ]),
     ];
 
     const result = await generateDataset(schema, {
-      model: openai("gpt-4"),
+      model: mockModel(),
       count: 1,
       seed: 7,
       output: "/tmp/seed-nested-schema-test.jsonl",
@@ -241,7 +252,7 @@ describe("seed does not skew", () => {
     };
 
     const result = await generateDataset(schema, {
-      model: openai("gpt-4"),
+      model: mockModel(),
       count: 1,
       seed: 42,
       output: "/tmp/seed-between-test.jsonl",
@@ -257,7 +268,7 @@ describe("seed does not skew", () => {
     ];
 
     const result = await generateDataset(schema, {
-      model: openai("gpt-4"),
+      model: mockModel(),
       count: 1,
       seed: 42,
       output: "/tmp/seed-mixed-test.jsonl",
@@ -286,7 +297,12 @@ describe("seed does not skew", () => {
     };
 
     const result = await generateDataset(singleAsyncNoResultYetAsk(), {
-      model: openai("gpt-4.1-nano"),
+      model: mockModel([
+        {
+          type: "text",
+          text: JSON.stringify({ name: "tool1" }),
+        },
+      ]),
       count: 1,
       seed: 42,
       output: "/tmp/seed-generated-tool-call-test.jsonl",
