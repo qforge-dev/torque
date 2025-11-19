@@ -66,7 +66,7 @@ describe("ChatTemplateFormatter", () => {
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0]).toEqual({
       role: "user",
-      content: "Hello",
+      content: [{ type: "text", text: "Hello" }],
     });
   });
 
@@ -93,15 +93,13 @@ describe("ChatTemplateFormatter", () => {
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0]).toEqual({
       role: "assistant",
-      content: "Thinking...",
-      tool_calls: [
+      content: [
+        { type: "text", text: "Thinking..." },
         {
+          type: "tool_call",
           id: "call_1",
-          type: "function",
-          function: {
-            name: "calc",
-            arguments: { a: 1 },
-          },
+          name: "calc",
+          arguments: { a: 1 },
         },
       ],
     });
@@ -125,12 +123,14 @@ describe("ChatTemplateFormatter", () => {
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0]).toEqual({
       role: "assistant",
-      content: "Checking weather...",
-      reasoning: "I should check the weather.",
+      content: [
+        { type: "reasoning", text: "I should check the weather." },
+        { type: "text", text: "Checking weather..." },
+      ],
     });
   });
 
-  it("should flatten tool result messages", () => {
+  it("should transform tool result messages", () => {
     const row = createMockRow({
       messages: [
         {
@@ -155,18 +155,49 @@ describe("ChatTemplateFormatter", () => {
     });
 
     const result = formatter.format(row);
-    expect(result.messages).toHaveLength(2);
+    expect(result.messages).toHaveLength(1);
     expect(result.messages[0]).toEqual({
       role: "tool",
-      tool_call_id: "call_1",
-      name: "calc",
-      content: "2",
+      content: [
+        {
+          type: "tool_result",
+          tool_call_id: "call_1",
+          name: "calc",
+          content: { type: "text", value: "2" },
+        },
+        {
+          type: "tool_result",
+          tool_call_id: "call_2",
+          name: "calc",
+          content: { type: "text", value: "4" },
+        },
+      ],
     });
-    expect(result.messages[1]).toEqual({
-      role: "tool",
-      tool_call_id: "call_2",
-      name: "calc",
-      content: "4",
+  });
+
+  it("should passthrough unknown types", () => {
+    const videoObject = { id: "vid_1" };
+    const row = createMockRow({
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "video", video: videoObject } as any,
+            { type: "text", text: "What do you see?" },
+          ],
+          generationId: "1",
+        },
+      ],
+    });
+
+    const result = formatter.format(row);
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0]).toEqual({
+      role: "user",
+      content: [
+        { type: "video", video: videoObject },
+        { type: "text", text: "What do you see?" },
+      ],
     });
   });
 });

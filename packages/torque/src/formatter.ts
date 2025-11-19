@@ -34,83 +34,51 @@ export class ChatTemplateFormatter implements IDatasetFormatter {
       },
     }));
 
-    const messages = row.messages.flatMap((msg) => {
-      if (msg.role === "tool") {
-        // Flatten tool results
-        if (Array.isArray(msg.content)) {
-          return msg.content
-            .map((part: any) => {
-              if (part.type === "tool-result") {
-                return {
-                  role: "tool",
-                  tool_call_id: part.toolCallId,
-                  name: part.toolName,
-                  content: JSON.stringify(part.output),
-                };
-              }
-              return null;
-            })
-            .filter(Boolean);
-        }
-        return [];
-      }
+    const messages = row.messages.map((msg) => {
+      let contentParts: any[] = [];
 
-      if (msg.role === "assistant") {
-        const toolCalls: any[] = [];
-        let contentString = "";
-        let reasoningString = "";
-
-        if (Array.isArray(msg.content)) {
-          for (const part of msg.content) {
-            if (part.type === "tool-call") {
-              toolCalls.push({
-                id: part.toolCallId,
-                type: "function",
-                function: {
-                  name: part.toolName,
-                  arguments: part.input,
-                },
-              });
-            } else if (part.type === "text") {
-              contentString += part.text;
-            } else if (part.type === "reasoning") {
-              // ai sdk types might vary but usually it's text or reasoning
-              reasoningString +=
-                (part as any).text || (part as any).reasoning || "";
-            }
+      if (typeof msg.content === "string") {
+        contentParts = [{ type: "text", text: msg.content }];
+      } else if (Array.isArray(msg.content)) {
+        contentParts = msg.content.map((part: any) => {
+          if (part.type === "text") {
+            return { type: "text", text: part.text };
           }
-        } else if (typeof msg.content === "string") {
-          contentString = msg.content;
-        }
-
-        const newMsg: any = {
-          role: "assistant",
-          content: contentString || null,
-        };
-        if (toolCalls.length > 0) {
-          newMsg.tool_calls = toolCalls;
-        }
-        if (reasoningString) {
-          newMsg.reasoning = reasoningString;
-        }
-        return [newMsg];
+          if (part.type === "image") {
+            // Pass through image parts
+            return { ...part };
+          }
+          if (part.type === "reasoning") {
+            return {
+              type: "reasoning",
+              text: part.text || part.reasoning || "",
+            };
+          }
+          if (part.type === "tool-call") {
+            return {
+              type: "tool_call",
+              id: part.toolCallId,
+              name: part.toolName,
+              arguments: part.input, // Assuming input is the arguments object
+            };
+          }
+          if (part.type === "tool-result") {
+            return {
+              type: "tool_result",
+              tool_call_id: part.toolCallId,
+              name: part.toolName,
+              content: part.output || part.result,
+            };
+          }
+          // Pass through any other parts (e.g. video)
+          return part;
+        });
       }
 
-      // User / System
-      let content = msg.content;
-      if (Array.isArray(content)) {
-        // Ensure content parts are compatible
-        // OpenAI accepts array of text/image parts.
-        // We'll assume they are compatible or simplify if needed.
-        // For now, pass through.
-      }
-
-      return [
-        {
-          role: msg.role,
-          content,
-        },
-      ];
+      return {
+        role: msg.role,
+        content: contentParts,
+      };
     });
 
     return { tools, messages };
