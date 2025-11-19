@@ -59,6 +59,76 @@ export function randomSample<T>(n: number, array: T[]): T[] {
   return result;
 }
 
+function generateRandomId(): string {
+  const randA = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+  const randB = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+  return `${randA.toString(36)}${randB.toString(36)}`;
+}
+
+function generateRandomCollectionName(): string {
+  const randA = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+  const randB = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+  return `col_${randA.toString(36)}${randB.toString(36)}`;
+}
+
+/**
+ * Factory function that creates a reusable oneOf function with unique selection.
+ * Converts an array of items (or weighted items) into a collection of objects with random IDs,
+ * and returns a function that can be called during schema generation to select
+ * unique items from the collection.
+ *
+ * @param items - Array of items or weighted items to create unique selection from
+ * @returns A function that when called, returns a unique item from the collection
+ *
+ * @example
+ * ```ts
+ * // Plain items
+ * const tools = [weatherTool, calendarTool, flightTool];
+ * const oneOfTools = uniqueOneOf(tools);
+ *
+ * // Weighted items
+ * const weightedTools = [
+ *   { value: weatherTool, weight: 0.5 },
+ *   { value: calendarTool, weight: 0.3 },
+ *   flightTool, // unweighted, gets remaining weight
+ * ];
+ * const oneOfWeightedTools = uniqueOneOf(weightedTools);
+ *
+ * const schema = () => [
+ *   oneOfTools(), // Returns a unique tool each time
+ * ];
+ * ```
+ */
+export function uniqueOneOf<T>(items: Array<WeightedOneOfOption<T>>): () => T {
+  if (items.length === 0) {
+    throw new Error("uniqueOneOf requires at least one item");
+  }
+
+  const collection = generateRandomCollectionName();
+  const optionsWithIds: OneOfOptionWithId<T>[] = items.map((item) => {
+    if (isWeightedOption(item)) {
+      return {
+        id: generateRandomId(),
+        value: item.value,
+        weight: item.weight,
+      };
+    } else {
+      return {
+        id: generateRandomId(),
+        value: item,
+      };
+    }
+  });
+
+  return () => {
+    return oneOf(optionsWithIds, {
+      uniqueBy: {
+        collection,
+      },
+    });
+  };
+}
+
 export function oneOf<T>(
   options: Array<OneOfOptionWithId<T>>,
   config: { uniqueBy: OneOfUniqueBy }

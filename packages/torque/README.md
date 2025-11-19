@@ -232,26 +232,43 @@ const schema = () => [
 
 #### Unique draws across a dataset
 
-Pass a `uniqueBy` configuration when you need each option to be used at most once across every row/schema during generation:
+Pass a `uniqueBy` configuration when you need each option to be used at most once across every row/schema during generation. When using `uniqueBy`, each option must be an object with `id`, `value`, and optionally `weight`:
 
 ```ts
 const toolOptions = [
-  weatherTool.toolFunction(),
-  calendarTool.toolFunction(),
-  flightTool.toolFunction(),
-] as const;
+  { id: "weather", value: weatherTool.toolFunction() },
+  { id: "calendar", value: calendarTool.toolFunction() },
+  { id: "flight", value: flightTool.toolFunction() },
+];
 
 const schema = () => [
   oneOf(toolOptions, {
     uniqueBy: {
       collection: "tools",
-      itemId: "name",
     },
   }),
 ];
 ```
 
-The `collection` name identifies the shared pool (so multiple `oneOf` calls can coordinate), and `itemId` can be either a property key or a function that returns a stable identifier. Omit `itemId` to default to the common `id` field. Torque throws if the pool is exhausted, making it easy to guarantee perfect round-robin coverage.
+You can also combine `uniqueBy` with weighted options:
+
+```ts
+const toolOptions = [
+  { id: "weather", value: weatherTool.toolFunction(), weight: 0.5 },
+  { id: "calendar", value: calendarTool.toolFunction(), weight: 0.3 },
+  { id: "flight", value: flightTool.toolFunction(), weight: 0.2 },
+];
+
+const schema = () => [
+  oneOf(toolOptions, {
+    uniqueBy: {
+      collection: "tools",
+    },
+  }),
+];
+```
+
+The `collection` name identifies the shared pool (so multiple `oneOf` calls can coordinate). The `id` property must be a string, number, or boolean and is used to track uniqueness. Torque throws if the pool is exhausted, making it easy to guarantee perfect round-robin coverage.
 
 > 💡 See weighted example: [`examples/weighted-one-of.ts`](examples/weighted-one-of.ts)  
 > 💡 Full utilities demo: [`examples/composition-utilities.ts`](examples/composition-utilities.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/composition-utilities)

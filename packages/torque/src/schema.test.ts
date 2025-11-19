@@ -6,7 +6,7 @@ import {
   generatedAssistant,
   assistant,
 } from "./schema";
-import { oneOf } from "./schema-rng";
+import { oneOf, uniqueOneOf } from "./schema-rng";
 import type { IMessageSchemaContext } from "./types";
 import { withSeed } from "./utils";
 import { MockLanguageModelV2 } from "ai/test";
@@ -136,6 +136,60 @@ describe("oneOf", () => {
           uniqueBy: { collection: "weighted-unique" },
         });
         expect(["A", "B", "C"]).toContain(third);
+        expect(new Set([first, second, third]).size).toBe(3);
+      });
+    });
+  });
+
+  it("uniqueOneOf creates a reusable oneOf function with unique selection", async () => {
+    const tools = ["weather", "calendar", "flight"];
+
+    const oneOfTools = uniqueOneOf(tools);
+
+    await runWithUniqueSelectionScope(async () => {
+      const picks = [oneOfTools(), oneOfTools(), oneOfTools()];
+
+      expect(new Set(picks).size).toBe(3);
+      picks.forEach((pick) => {
+        expect(tools).toContain(pick);
+      });
+    });
+  });
+
+  it("uniqueOneOf throws when collection is exhausted", async () => {
+    const tools = ["only"];
+
+    const oneOfTools = uniqueOneOf(tools);
+
+    await runWithUniqueSelectionScope(async () => {
+      oneOfTools(); // First call succeeds
+
+      expect(() => {
+        oneOfTools(); // Second call should throw
+      }).toThrow("oneOf uniqueBy collection");
+    });
+  });
+
+  it("uniqueOneOf works with weighted options", async () => {
+    const weightedTools = [
+      { value: "weather", weight: 0.5 },
+      { value: "calendar", weight: 0.3 },
+      "flight", // unweighted, gets remaining weight
+    ];
+
+    const oneOfTools = uniqueOneOf(weightedTools);
+
+    await runWithUniqueSelectionScope(async () => {
+      await withSeed(100, async () => {
+        const first = oneOfTools();
+        expect(["weather", "calendar", "flight"]).toContain(first);
+
+        const second = oneOfTools();
+        expect(["weather", "calendar", "flight"]).toContain(second);
+        expect(second).not.toBe(first);
+
+        const third = oneOfTools();
+        expect(["weather", "calendar", "flight"]).toContain(third);
         expect(new Set([first, second, third]).size).toBe(3);
       });
     });
