@@ -270,6 +270,42 @@ const schema = () => [
 
 The `collection` name identifies the shared pool (so multiple `oneOf` calls can coordinate). The `id` property must be a string, number, or boolean and is used to track uniqueness. Torque throws if the pool is exhausted, making it easy to guarantee perfect round-robin coverage.
 
+#### Using `uniqueOneOf` factory function
+
+For a simpler API, use `uniqueOneOf` to automatically generate IDs and create a reusable function. This is especially useful when you want to create the unique selection function outside of your schema:
+
+```ts
+import { uniqueOneOf } from "@qforge/torque";
+
+// Create the factory function outside generation
+const tools = [weatherTool, calendarTool, flightTool];
+const oneOfTools = uniqueOneOf(tools);
+
+// Or with weighted options
+const weightedTools = [
+  { value: weatherTool, weight: 0.5 },
+  { value: calendarTool, weight: 0.3 },
+  flightTool, // unweighted, gets remaining weight
+];
+const oneOfWeightedTools = uniqueOneOf(weightedTools);
+
+const schema = () => {
+  const tool = oneOfTools(); // Returns a unique tool each time
+  return [
+    tool.toolFunction(),
+    generatedUser({ prompt: "Ask question requiring this tool" }),
+    generatedToolCall(tool, "t1"),
+    generatedToolCallResult(tool, "t1"),
+  ];
+};
+```
+
+The `uniqueOneOf` factory automatically:
+
+- Generates unique IDs for each item
+- Creates a unique collection name
+- Returns a function that enforces uniqueness across calls
+
 > 💡 See weighted example: [`examples/weighted-one-of.ts`](examples/weighted-one-of.ts)  
 > 💡 Full utilities demo: [`examples/composition-utilities.ts`](examples/composition-utilities.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/composition-utilities)
 

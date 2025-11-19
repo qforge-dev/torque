@@ -31,9 +31,15 @@ await T.generateDataset(
     T.oneOf([
       // pick one randomly (weights are optional)
       { value: T.assistant({ content: "Hello!" }), weight: 0.3 }, // static
-      T.generatedAssistant({ prompt: "Respond to greeting" }), // AI generated, gets remaining weight
+      T.generatedAssistant({
+        prompt: "Respond to greeting",
+        reasoning: T.generatedReasoning({
+          prompt: "Reason about the greeting",
+        }),
+        // or reasoning: reasoning({ content: "...." }),
+      }), // AI generated, gets remaining weight
     ]),
-    T.times(T.between(1, 3), [
+    T.times(between(1, 3), [
       T.generatedUser({
         prompt: "Chat about weather. Optionally mentioning previous message",
       }),
@@ -261,6 +267,42 @@ const schema = () => [
 
 The `collection` name identifies the shared pool (so multiple `oneOf` calls can coordinate). The `id` property must be a string, number, or boolean and is used to track uniqueness. Torque throws if the pool is exhausted, making it easy to guarantee perfect round-robin coverage.
 
+#### Using `uniqueOneOf` factory function
+
+For a simpler API, use `uniqueOneOf` to automatically generate IDs and create a reusable function. This is especially useful when you want to create the unique selection function outside of your schema:
+
+```ts
+import { uniqueOneOf } from "@qforge/torque";
+
+// Create the factory function outside generation
+const tools = [weatherTool, calendarTool, flightTool];
+const oneOfTools = uniqueOneOf(tools);
+
+// Or with weighted options
+const weightedTools = [
+  { value: weatherTool, weight: 0.5 },
+  { value: calendarTool, weight: 0.3 },
+  flightTool, // unweighted, gets remaining weight
+];
+const oneOfWeightedTools = uniqueOneOf(weightedTools);
+
+const schema = () => {
+  const tool = oneOfTools(); // Returns a unique tool each time
+  return [
+    tool.toolFunction(),
+    generatedUser({ prompt: "Ask question requiring this tool" }),
+    generatedToolCall(tool, "t1"),
+    generatedToolCallResult(tool, "t1"),
+  ];
+};
+```
+
+The `uniqueOneOf` factory automatically:
+
+- Generates unique IDs for each item
+- Creates a unique collection name
+- Returns a function that enforces uniqueness across calls
+
 > 💡 See weighted example: [`examples/weighted-one-of.ts`](examples/weighted-one-of.ts)  
 > 💡 Full utilities demo: [`examples/composition-utilities.ts`](examples/composition-utilities.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/composition-utilities)
 
@@ -369,32 +411,50 @@ await generateDataset(schema, {
 - If omitted, a random seed is generated and displayed in the CLI
 - Seeds control both `torque` random selections and AI model sampling (when supported by the provider)
 
-### Output Formats
+### Background Token Counting
 
-Choose your preferred output format for generated datasets:
+Token counts for each row are computed off the main thread using a worker pool so dataset generation stays responsive. Configure the pool with `tokenCounterWorkers` (default: `3`), or disable counting entirely by setting it to `0`.
 
 ```typescript
-// Export as JSONL (default - line-delimited JSON)
 await generateDataset(schema, {
-  count: 100,
-  model: openai("gpt-4o-mini"),
-  format: "jsonl", // default, can be omitted
-  output: "data/dataset.jsonl",
-});
-
-// Export as Parquet (columnar format, efficient for analytics)
-await generateDataset(schema, {
-  count: 100,
-  model: openai("gpt-4o-mini"),
-  format: "parquet",
-  output: "data/dataset.parquet",
+  count: 20,
+  model: openai("gpt-5-mini"),
+  tokenCounterWorkers: 5, // spawn 5 token-counting workers
 });
 ```
 
-**Supported formats:**
+### Output Formats
+
+Choose your preferred output file format and data structure:
+
+```typescript
+// Export as JSONL with default ai-sdk structure (default)
+await generateDataset(schema, {
+  count: 100,
+  model: openai("gpt-4o-mini"),
+  format: "jsonl",
+  output: "data/dataset.jsonl",
+});
+
+// Export in OpenAI Chat Completions format (tools + messages structure)
+await generateDataset(schema, {
+  count: 100,
+  model: openai("gpt-4o-mini"),
+  format: "jsonl",
+  exportFormat: "chat_template",
+  output: "data/finetune.jsonl",
+});
+```
+
+**Supported File Formats (`format`):**
 
 - **`jsonl`** (default) - JSON Lines format, one row per line. Best for streaming and line-by-line processing.
 - **`parquet`** - Apache Parquet columnar format. More efficient for large datasets and analytics tools (e.g., Pandas, DuckDB, Apache Spark).
+
+**Supported Data Structures (`exportFormat`):**
+
+- **`ai-sdk`** (default) - Internal Torque format, compatible with Vercel AI SDK. Includes schema metadata, tool definitions, and full message objects.
+- **`chat_template`** - OpenAI Chat Completions compatible format. Flattened message structure with `tools` and `messages` top-level keys. Ideal for fine-tuning or direct API usage.
 
 Both formats write rows incrementally as they're generated, so large datasets won't consume excessive memory.
 
