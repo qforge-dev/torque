@@ -1,12 +1,17 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@qforge/torque",
     },
     "packages/torque": {
       "name": "@qforge/torque",
+<<<<<<< Updated upstream
       "version": "0.2.5",
+=======
+      "version": "0.2.3",
+>>>>>>> Stashed changes
       "dependencies": {
         "@faker-js/faker": "^9.3.0",
         "parquetjs": "^0.11.2",

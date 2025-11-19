@@ -32,6 +32,8 @@ import { createWriter } from "./writer";
 import { createFormatter } from "./formatter";
 import { TokenCounterPool } from "./token-counting/tokenCounterPool";
 import { hoistSystemMessages } from "./ai-message-order";
+import { runWithMessageContext } from "./message-context";
+import { runWithUniqueSelectionScope } from "./unique-selection";
 
 const DEFAULT_TOKEN_COUNTER_WORKERS = 3;
 
@@ -417,7 +419,9 @@ async function checkMessageSchemaStructure(
     generationContext,
   };
 
-  const message = await messageFactory(checkContext);
+  const message = await runWithMessageContext(checkContext, () =>
+    messageFactory(checkContext)
+  );
   if (message === null) return structure;
 
   if (Array.isArray(message)) {
@@ -458,7 +462,9 @@ async function checkMessageSchemaStructure(
         generationId: string;
       }[] = [];
       for (const tc of message.toolCalls) {
-        const toolCall = await tc(checkContext);
+        const toolCall = await runWithMessageContext(checkContext, () =>
+          tc(checkContext)
+        );
         toolCallStructures.push({
           toolCallId: toolCall.toolCallId,
           toolName: toolCall.toolName,
@@ -609,7 +615,9 @@ async function convertMessageSchemaToDatasetMessage(
     generationContext,
   };
 
-  const message = await messageFactory(context);
+  const message = await runWithMessageContext(context, () =>
+    messageFactory(context)
+  );
 
   if (message === null) return acc;
   if (Array.isArray(message)) {
@@ -733,7 +741,9 @@ async function convertMessageSchemaToDatasetMessage(
       if (message.toolCalls && message.toolCalls.length > 0) {
         const toolCallParts: IToolCallSchema<any>[] = [];
         for (const tc of message.toolCalls) {
-          const toolCall = await tc(context);
+          const toolCall = await runWithMessageContext(context, () =>
+            tc(context)
+          );
           toolCallParts.push(toolCall);
         }
 

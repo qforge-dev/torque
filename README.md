@@ -221,6 +221,29 @@ const schema = () => [
 
 `oneOf` accepts plain schema entries or `{ value, weight }` objects. Provide any subset of weights (summing to ≤ 1) and the remaining probability is spread evenly across unweighted entries.
 
+#### Unique draws across a dataset
+
+Pass a `uniqueBy` configuration when you need each option to be used at most once across every row/schema during generation:
+
+```ts
+const toolOptions = [
+  weatherTool.toolFunction(),
+  calendarTool.toolFunction(),
+  flightTool.toolFunction(),
+] as const;
+
+const schema = () => [
+  oneOf(toolOptions, {
+    uniqueBy: {
+      collection: "tools",
+      itemId: "name",
+    },
+  }),
+];
+```
+
+The `collection` name identifies the shared pool (so multiple `oneOf` calls can coordinate), and `itemId` can be either a property key or a function that returns a stable identifier. Omit `itemId` to default to the common `id` field. Torque throws if the pool is exhausted, making it easy to guarantee perfect round-robin coverage.
+
 > 💡 See weighted example: [`examples/weighted-one-of.ts`](examples/weighted-one-of.ts)  
 > 💡 Full utilities demo: [`examples/composition-utilities.ts`](examples/composition-utilities.ts) | [▶️ Try in Browser](https://stackblitz.com/github/qforge-dev/torque/tree/main/stackblitz-templates/composition-utilities)
 

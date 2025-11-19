@@ -11,6 +11,7 @@ import type { IMessageSchemaContext } from "./types";
 import { withSeed } from "./utils";
 import { MockLanguageModelV2 } from "ai/test";
 import { AiAgent } from "./ai";
+import { runWithUniqueSelectionScope } from "./unique-selection";
 
 describe("oneOf", () => {
   it("spreads remaining weight across unweighted options", async () => {
@@ -66,6 +67,97 @@ describe("oneOf", () => {
     expect(() =>
       oneOf([{ value: "left", weight: -0.1 }, { value: "right" }])
     ).toThrow("oneOf weight values must be between 0 and 1");
+  });
+
+  it("enforces uniqueBy across calls", async () => {
+    const options = [
+      { value: { id: "a" } },
+      { value: { id: "b" } },
+      { value: { id: "c" } },
+    ];
+
+    await runWithUniqueSelectionScope(async () => {
+      const picks = [
+        oneOf([...options], {
+          uniqueBy: { collection: "tools", itemId: "id" },
+        }).id,
+        oneOf([...options], {
+          uniqueBy: { collection: "tools", itemId: "id" },
+        }).id,
+        oneOf([...options], {
+          uniqueBy: { collection: "tools", itemId: "id" },
+        }).id,
+      ];
+
+      expect(new Set(picks).size).toBe(3);
+    });
+  });
+
+  it("throws when a unique collection is exhausted", async () => {
+    const options = [
+      { value: { id: "only" } },
+      { value: { id: "only" } },
+    ] as const;
+
+    await runWithUniqueSelectionScope(async () => {
+      oneOf([...options], {
+        uniqueBy: { collection: "limited", itemId: "id" },
+      });
+
+      expect(() =>
+        oneOf([...options], {
+          uniqueBy: { collection: "limited", itemId: "id" },
+        })
+      ).toThrow('oneOf uniqueBy collection "limited" is exhausted');
+    });
+  });
+
+  it("supports functional unique key extractors", async () => {
+    const options = [
+      { value: { tool: { name: "weather" } } },
+      { value: { tool: { name: "calendar" } } },
+    ];
+
+    await runWithUniqueSelectionScope(async () => {
+      const first = oneOf([...options], {
+        uniqueBy: {
+          collection: "tools",
+          itemId: (value) => value.tool.name,
+        },
+      });
+
+      expect(first.tool.name).toMatch(/weather|calendar/);
+
+      const second = oneOf([...options], {
+        uniqueBy: {
+          collection: "tools",
+          itemId: (value) => value.tool.name,
+        },
+      });
+
+      expect(second.tool.name).not.toBe(first.tool.name);
+    });
+  });
+
+  it("requires uniqueBy when unique is enabled", () => {
+    expect(() =>
+      oneOf([{ value: "a" }, { value: "b" }], { unique: true })
+    ).toThrow("oneOf unique mode requires a uniqueBy option");
+  });
+
+  it("defaults uniqueBy itemId to 'id' when omitted", async () => {
+    const options = [{ value: { id: "alpha" } }, { value: { id: "beta" } }];
+
+    await runWithUniqueSelectionScope(async () => {
+      const first = oneOf([...options], {
+        uniqueBy: { collection: "tools" },
+      }).id;
+      const second = oneOf([...options], {
+        uniqueBy: { collection: "tools" },
+      }).id;
+
+      expect(new Set([first, second]).size).toBe(2);
+    });
   });
 });
 
