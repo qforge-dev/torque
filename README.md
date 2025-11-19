@@ -22,28 +22,22 @@
 ## 🚀 Quick Example
 
 ```typescript
-import {
-  generateDataset,
-  generatedUser,
-  generatedAssistant,
-  assistant,
-  oneOf,
-} from "@qforge/torque";
+import * as T from "@qforge/torque";
 import { openai } from "@ai-sdk/openai";
 
-await generateDataset(
+await T.generateDataset(
   () => [
-    generatedUser({ prompt: "Friendly greeting or introduction" }), // AI generated
-    oneOf([
+    T.generatedUser({ prompt: "Friendly greeting or introduction" }), // AI generated
+    T.oneOf([
       // pick one randomly (weights are optional)
-      { value: assistant({ content: "Hello!" }), weight: 0.3 }, // static
-      generatedAssistant({ prompt: "Respond to greeting" }), // AI generated, gets remaining weight
+      { value: T.assistant({ content: "Hello!" }), weight: 0.3 }, // static
+      T.generatedAssistant({ prompt: "Respond to greeting" }), // AI generated, gets remaining weight
     ]),
-    times(between(1, 3), [
-      generatedUser({
+    T.times(T.between(1, 3), [
+      T.generatedUser({
         prompt: "Chat about weather. Optionally mentioning previous message",
       }),
-      generatedAssistant({ prompt: "Respond to user. Short and concise." }),
+      T.generatedAssistant({ prompt: "Respond to user. Short and concise." }),
     ]),
   ],
   {
