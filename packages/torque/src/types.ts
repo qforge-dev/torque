@@ -223,11 +223,13 @@ export interface ISchemaWithCount {
 }
 
 export type DatasetFormat = "jsonl" | "parquet";
+export type DatasetExportFormat = "ai-sdk" | "chat_template";
 
 interface IGenerateDatasetBaseArgs {
   seed?: number;
   output?: string;
   format?: DatasetFormat;
+  exportFormat?: DatasetExportFormat;
   model: LanguageModel;
   concurrency?: number;
   tokenCounterWorkers?: number;

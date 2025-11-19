@@ -354,30 +354,36 @@ When Bun workers are unavailable, Torque automatically falls back to in-process 
 
 ### Output Formats
 
-Choose your preferred output format for generated datasets:
+Choose your preferred output file format and data structure:
 
 ```typescript
-// Export as JSONL (default - line-delimited JSON)
+// Export as JSONL with default ai-sdk structure (default)
 await generateDataset(schema, {
   count: 100,
   model: openai("gpt-4o-mini"),
-  format: "jsonl", // default, can be omitted
+  format: "jsonl",
   output: "data/dataset.jsonl",
 });
 
-// Export as Parquet (columnar format, efficient for analytics)
+// Export in OpenAI Chat Completions format (tools + messages structure)
 await generateDataset(schema, {
   count: 100,
   model: openai("gpt-4o-mini"),
-  format: "parquet",
-  output: "data/dataset.parquet",
+  format: "jsonl",
+  exportFormat: "chat_template",
+  output: "data/finetune.jsonl",
 });
 ```
 
-**Supported formats:**
+**Supported File Formats (`format`):**
 
 - **`jsonl`** (default) - JSON Lines format, one row per line. Best for streaming and line-by-line processing.
 - **`parquet`** - Apache Parquet columnar format. More efficient for large datasets and analytics tools (e.g., Pandas, DuckDB, Apache Spark).
+
+**Supported Data Structures (`exportFormat`):**
+
+- **`ai-sdk`** (default) - Internal Torque format, compatible with Vercel AI SDK. Includes schema metadata, tool definitions, and full message objects.
+- **`chat_template`** - OpenAI Chat Completions compatible format. Flattened message structure with `tools` and `messages` top-level keys. Ideal for fine-tuning or direct API usage.
 
 Both formats write rows incrementally as they're generated, so large datasets won't consume excessive memory.
 

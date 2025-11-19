@@ -29,6 +29,7 @@ import type {
   IGenerateDatasetArgsMultiSchema,
 } from "./types";
 import { createWriter } from "./writer";
+import { createFormatter } from "./formatter";
 import { TokenCounterPool } from "./token-counting/tokenCounterPool";
 import { hoistSystemMessages } from "./ai-message-order";
 
@@ -67,6 +68,7 @@ export async function generateDataset(
     seed,
     output,
     format = "jsonl",
+    exportFormat = "ai-sdk",
     model,
     concurrency = 5,
     generationContext,
@@ -99,7 +101,8 @@ export async function generateDataset(
   await fsp.mkdir(outputDir, { recursive: true });
 
   // Initialize the writer for the specified format
-  const writer = createWriter(format, outputPath);
+  const formatter = createFormatter(exportFormat);
+  const writer = createWriter(format, outputPath, formatter.parquetSchema);
   await writer.init();
 
   // Initialize the CLI renderer
@@ -174,7 +177,8 @@ export async function generateDataset(
 
         // Write row immediately after generation
         // Thread-safety is handled internally by the writer
-        await writer.appendRow(row);
+        const formattedRow = formatter.format(row);
+        await writer.appendRow(formattedRow);
 
         // Mark generation as completed
         renderer.completeGeneration(task.index);

@@ -1,5 +1,5 @@
 import fsp from "fs/promises";
-import type { DatasetFormat, IDatasetRow } from "./types";
+import type { DatasetFormat } from "./types";
 import * as parquet from "parquetjs";
 
 export class JsonlWriter implements IDatasetWriter {
@@ -11,7 +11,7 @@ export class JsonlWriter implements IDatasetWriter {
     // No initialization needed for JSONL
   }
 
-  async appendRow(row: IDatasetRow): Promise<void> {
+  async appendRow(row: Record<string, any>): Promise<void> {
     // Serialize writes to ensure proper ordering
     this.writeLock = this.writeLock.then(async () => {
       const jsonLine = JSON.stringify(row) + "\n";
@@ -25,35 +25,37 @@ export class JsonlWriter implements IDatasetWriter {
     await this.writeLock;
   }
 }
+
 export class ParquetWriter implements IDatasetWriter {
   private writer: parquet.ParquetWriter | null = null;
   private writeLock = Promise.resolve();
 
-  constructor(private filePath: string) {}
+  constructor(
+    private filePath: string,
+    private schemaFields: Record<string, any>
+  ) {}
 
   async init(): Promise<void> {
-    const schema = new parquet.ParquetSchema({
-      messages: { type: "UTF8" }, // JSON string
-      tools: { type: "UTF8" }, // JSON string
-      schema: { type: "UTF8" }, // JSON string
-      meta: { type: "UTF8" }, // JSON string
-    });
+    const schema = new parquet.ParquetSchema(this.schemaFields);
     this.writer = await parquet.ParquetWriter.openFile(schema, this.filePath);
   }
 
-  async appendRow(row: IDatasetRow): Promise<void> {
+  async appendRow(row: Record<string, any>): Promise<void> {
     if (!this.writer) {
       throw new Error("ParquetWriter not initialized. Call init() first.");
     }
     // Serialize writes to avoid concurrent access issues with Parquet
     this.writeLock = this.writeLock.then(async () => {
-      // Convert complex nested structures to JSON strings for Parquet storage
-      await this.writer!.appendRow({
-        messages: JSON.stringify(row.messages),
-        tools: JSON.stringify(row.tools),
-        schema: JSON.stringify(row.schema),
-        meta: JSON.stringify(row.meta),
-      });
+      const data: Record<string, any> = {};
+      for (const key of Object.keys(this.schemaFields)) {
+        const value = row[key];
+        if (typeof value === "object" && value !== null) {
+          data[key] = JSON.stringify(value);
+        } else {
+          data[key] = value;
+        }
+      }
+      await this.writer!.appendRow(data);
     });
     await this.writeLock;
   }
@@ -66,22 +68,27 @@ export class ParquetWriter implements IDatasetWriter {
     }
   }
 }
+
 export function createWriter(
   format: DatasetFormat,
-  filePath: string
+  filePath: string,
+  parquetSchema?: Record<string, any>
 ): IDatasetWriter {
   switch (format) {
     case "jsonl":
       return new JsonlWriter(filePath);
     case "parquet":
-      return new ParquetWriter(filePath);
+      if (!parquetSchema) {
+        throw new Error("Parquet schema is required for parquet format");
+      }
+      return new ParquetWriter(filePath, parquetSchema);
     default:
       throw new Error(`Unsupported format: ${format}`);
   }
-} // Writer abstraction for different output formats
+}
 
 export interface IDatasetWriter {
   init(): Promise<void>;
-  appendRow(row: IDatasetRow): Promise<void>;
+  appendRow(row: Record<string, any>): Promise<void>;
   close(): Promise<void>;
 }
